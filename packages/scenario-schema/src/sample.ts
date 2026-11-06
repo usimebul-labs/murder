@@ -1,0 +1,100 @@
+import type { ScenarioInput } from "./schema.js";
+
+/** 개발·테스트용 4인 샘플 시나리오 */
+export const sampleScenario = {
+  schemaVersion: 1,
+  id: "raven-manor",
+  meta: {
+    title: "까마귀 저택의 마지막 만찬",
+    synopsis: "폭풍우 치는 밤, 저택의 주인이 서재에서 숨진 채 발견되었습니다.",
+    minPlayers: 4,
+    maxPlayers: 4,
+    estimatedMinutes: 90,
+    difficulty: "normal",
+    tags: ["저택", "입문"],
+  },
+  characters: [
+    {
+      id: "butler",
+      name: "집사 한도윤",
+      publicProfile: "30년째 저택을 지켜온 집사.",
+      privateScript: "당신은 21:40에 서재 앞을 지나갔습니다.",
+      goals: ["유언장의 행방을 숨긴다"],
+      isCulprit: false,
+      colorIndex: 1,
+    },
+    {
+      id: "niece",
+      name: "조카 서하린",
+      publicProfile: "유산 상속을 기다리는 조카.",
+      privateScript: "당신은 삼촌과 크게 다퉜습니다.",
+      goals: [],
+      isCulprit: true,
+      colorIndex: 2,
+    },
+    {
+      id: "doctor",
+      name: "주치의 강민재",
+      publicProfile: "저택 주인의 오랜 주치의.",
+      privateScript: "당신은 수면제를 처방했습니다.",
+      goals: [],
+      isCulprit: false,
+      colorIndex: 3,
+    },
+    {
+      id: "writer",
+      name: "작가 윤세아",
+      publicProfile: "저택에 머물며 자서전을 대필하는 작가.",
+      privateScript: "당신은 원고에서 비밀을 알게 되었습니다.",
+      goals: [],
+      isCulprit: false,
+      colorIndex: 4,
+    },
+  ],
+  clues: [
+    {
+      id: "teacup",
+      code: "EV-01",
+      title: "식은 찻잔",
+      body: "서재 책상 위의 찻잔. 바닥에 하얀 가루가 남아 있다.",
+      visibility: { kind: "all" },
+      unlock: { phaseId: "investigation-1", location: "서재" },
+    },
+    {
+      id: "letter",
+      code: "EV-02",
+      title: "찢어진 편지",
+      body: '"유언장을 바꾸겠다"는 문장이 적혀 있다.',
+      visibility: { kind: "characters", characterIds: ["writer"] },
+      unlock: { requiresClueIds: ["teacup"] },
+    },
+  ],
+  phases: [
+    { id: "intro", kind: "intro", title: "사건 개요", durationSec: 0 },
+    { id: "reading", kind: "reading", title: "대본 읽기", durationSec: 600, voiceEnabled: false },
+    { id: "investigation-1", kind: "investigation", title: "1차 조사", durationSec: 900 },
+    {
+      id: "discussion-1",
+      kind: "discussion",
+      title: "토론",
+      durationSec: 1200,
+      allowWhisper: true,
+    },
+    { id: "vote", kind: "vote", title: "범인 지목", durationSec: 180, voiceEnabled: false },
+    { id: "ending", kind: "ending", title: "진실 공개", durationSec: 0 },
+  ],
+  endings: [
+    {
+      id: "solved",
+      title: "진실이 밝혀졌습니다",
+      body: "범인은 조카였습니다.",
+      condition: { kind: "culprit-accused" },
+    },
+    {
+      id: "default",
+      title: "사건은 미궁으로",
+      body: "범인은 폭풍우 속으로 사라졌습니다.",
+      condition: { kind: "default" },
+    },
+  ],
+} satisfies ScenarioInput;

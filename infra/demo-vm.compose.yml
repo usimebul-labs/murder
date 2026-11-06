@@ -1,0 +1,23 @@
+# 비공개 데모용: Oracle Cloud Always Free VM 한 대에서 게임 서버 + Redis + Caddy(HTTPS)
+#   GAME_DOMAIN=game.example.duckdns.org docker compose -f infra/demo-vm.compose.yml up -d
+services:
+  game:
+    build:
+      context: ..
+      dockerfile: infra/game.Dockerfile
+    env_file: ../apps/game/.env
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+  caddy:
+    image: caddy:2-alpine
+    ports: ["80:80", "443:443"]
+    environment:
+      GAME_DOMAIN: ${GAME_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    restart: unless-stopped
+volumes:
+  caddy_data:

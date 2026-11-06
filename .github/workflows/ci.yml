@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint (Biome, 모듈 import 제한 포함)
+        run: pnpm lint
+      - name: 모듈 경계 검사 (play ↔ studio 금지)
+        run: pnpm boundaries
+      - name: Typecheck, test, build
+        run: pnpm turbo run typecheck test build

@@ -1,0 +1,15 @@
+:root{
+--ease-standard:cubic-bezier(0.2,0,0,1);/* @kind other */
+--ease-quiet:cubic-bezier(0.25,0.8,0.25,1);/* @kind other */
+--ease-reveal:cubic-bezier(0.7,0,0.2,1);/* @kind other */
+--ease-stamp:cubic-bezier(0.3,1.4,0.5,1);/* @kind other */
+--dur-instant:80ms;/* @kind other */--dur-fast:140ms;/* @kind other */--dur-base:220ms;/* @kind other */--dur-slow:420ms;/* @kind other */--dur-flip:640ms;/* @kind other */--dur-dramatic:1200ms;/* @kind other */--dur-reveal:2400ms;/* @kind other */
+}
+@media (prefers-reduced-motion:reduce){:root{--dur-fast:1ms;/* @kind other */--dur-base:1ms;/* @kind other */--dur-slow:1ms;/* @kind other */--dur-flip:1ms;/* @kind other */--dur-dramatic:1ms;/* @kind other */--dur-reveal:1ms;/* @kind other */}}
+@keyframes nm-fade-up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes nm-fade{from{opacity:0}to{opacity:1}}
+@keyframes nm-candle{0%,100%{box-shadow:var(--glow-candle)}50%{box-shadow:0 0 0 1px oklch(0.87 0.10 86 / 0.4),0 0 12px oklch(0.87 0.12 86 / 0.18)}}
+@keyframes nm-stamp{0%{opacity:0;transform:scale(1.8) rotate(-14deg)}60%{opacity:1;transform:scale(0.96) rotate(-8deg)}100%{opacity:1;transform:scale(1) rotate(-8deg)}}
+@keyframes nm-spot{from{opacity:0;filter:brightness(0.2) blur(4px)}to{opacity:1;filter:none}}
+@keyframes nm-tick{0%,100%{opacity:1}50%{opacity:0.55}}
+@keyframes nm-spin{to{transform:rotate(360deg)}}

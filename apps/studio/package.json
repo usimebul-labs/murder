@@ -1,0 +1,30 @@
+{
+  "name": "@mm/studio",
+  "version": "0.0.0",
+  "private": true,
+  "description": "스튜디오: 시나리오 에디터. 게임 플레이와는 @mm/scenario-schema만 공유한다",
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "start": "next start --port 3001",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@mm/scenario-schema": "workspace:*",
+    "@mm/ui": "workspace:*",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.0",
+    "next": "^16.4.5",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@mm/config": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.4",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4.3.4",
+    "typescript": "~5.9.3"
+  }
+}

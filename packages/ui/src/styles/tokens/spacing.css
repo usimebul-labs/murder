@@ -1,0 +1,8 @@
+:root{
+--space-0:0;--space-px:1px;--space-0-5:2px;--space-1:4px;--space-1-5:6px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--space-16:64px;--space-20:80px;
+--hit-min:44px;
+--gutter:var(--space-4);--section-gap:var(--space-8);
+--container-sm:480px;--container-md:768px;--container-lg:1200px;
+--app-header:56px;--app-tabbar:60px;
+}
+@media (min-width:768px){:root{--gutter:var(--space-6)}}

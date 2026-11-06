@@ -1,0 +1,30 @@
+{
+  "name": "@mm/scenario-schema",
+  "version": "0.0.0",
+  "private": true,
+  "description": "게임 플레이와 스튜디오가 공유하는 유일한 도메인 패키지: 시나리오 스키마, 검증, 마이그레이션",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@mm/config": "workspace:*",
+    "typescript": "~5.9.3",
+    "vitest": "^5.1.0"
+  }
+}

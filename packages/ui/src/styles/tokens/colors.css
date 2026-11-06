@@ -1,0 +1,89 @@
+/* ===== Night scene (default, dark) ===== */
+:root{
+/* raw: ink (warm near-black) */
+--ink-950:oklch(0.13 0.010 60);--ink-900:oklch(0.16 0.012 60);--ink-850:oklch(0.185 0.013 60);--ink-800:oklch(0.21 0.014 60);--ink-700:oklch(0.26 0.016 62);--ink-600:oklch(0.33 0.018 65);--ink-500:oklch(0.45 0.020 70);
+/* raw: paper (aged ivory) */
+--paper-400:oklch(0.66 0.025 75);--paper-300:oklch(0.74 0.028 80);--paper-200:oklch(0.85 0.030 85);--paper-100:oklch(0.92 0.025 85);--paper-50:oklch(0.96 0.018 88);
+/* raw: brass (candlelight) */
+--brass-300:oklch(0.87 0.10 86);--brass-400:oklch(0.80 0.11 80);--brass-500:oklch(0.72 0.11 75);--brass-700:oklch(0.50 0.08 70);--brass-900:oklch(0.27 0.04 75);
+/* raw: oxblood (restrained red) */
+--oxblood-300:oklch(0.76 0.11 25);--oxblood-400:oklch(0.69 0.15 26);--oxblood-500:oklch(0.56 0.17 25);--oxblood-600:oklch(0.46 0.15 25);--oxblood-800:oklch(0.29 0.08 25);
+/* raw: supporting hues */
+--verdigris-400:oklch(0.77 0.07 160);--verdigris-800:oklch(0.29 0.04 160);
+--moon-400:oklch(0.77 0.07 235);--moon-800:oklch(0.29 0.04 235);
+--violet-400:oklch(0.75 0.08 300);--violet-800:oklch(0.29 0.05 300);
+--plum-400:oklch(0.74 0.09 340);--plum-800:oklch(0.29 0.05 340);
+--ash-400:oklch(0.68 0.012 70);
+
+/* shadcn semantic */
+--background:var(--ink-900);--foreground:var(--paper-100);
+--card:var(--ink-850);--card-foreground:var(--paper-100);
+--popover:var(--ink-800);--popover-foreground:var(--paper-100);
+--primary:var(--brass-400);--primary-hover:var(--brass-300);--primary-foreground:var(--ink-950);
+--secondary:var(--ink-800);--secondary-foreground:var(--paper-100);
+--muted:var(--ink-800);--muted-foreground:var(--paper-400);
+--accent:var(--ink-700);--accent-foreground:var(--paper-50);
+--destructive:var(--oxblood-600);--destructive-hover:var(--oxblood-500);--destructive-foreground:var(--paper-50);
+--destructive-text:var(--oxblood-400);
+--border:oklch(0.30 0.018 65);--border-strong:oklch(0.42 0.022 70);
+--input:oklch(0.36 0.020 68);--input-bg:var(--ink-950);
+--ring:var(--brass-400);
+/* parchment surface (documents, evidence face, notes) */
+--paper-surface:var(--paper-200);--paper-surface-2:var(--paper-300);--paper-ink:oklch(0.24 0.02 60);--paper-ink-muted:oklch(0.42 0.025 65);--paper-rule:oklch(0.70 0.03 75);
+--overlay:oklch(0.08 0.01 60 / 0.78);
+
+/* game: evidence */
+--clue:var(--brass-400);--clue-foreground:var(--ink-950);--clue-surface:oklch(0.25 0.04 78);--clue-border:oklch(0.46 0.07 78);
+--clue-new:var(--brass-300);--clue-new-foreground:var(--ink-950);--clue-new-surface:oklch(0.29 0.06 85);--clue-new-border:var(--brass-400);
+--secret:var(--violet-400);--secret-foreground:var(--ink-950);--secret-surface:var(--violet-800);--secret-border:oklch(0.46 0.07 300);
+--alibi:var(--verdigris-400);--alibi-foreground:var(--ink-950);--alibi-surface:var(--verdigris-800);--alibi-border:oklch(0.46 0.06 160);
+/* game: suspicion (always paired with pips + label) */
+--suspicion-0:var(--ash-400);
+--suspicion-1:oklch(0.84 0.09 92);--suspicion-1-surface:oklch(0.27 0.035 92);
+--suspicion-2:oklch(0.77 0.13 58);--suspicion-2-surface:oklch(0.28 0.05 58);
+--suspicion-3:var(--oxblood-400);--suspicion-3-surface:var(--oxblood-800);
+/* game: character status */
+--victim:var(--ash-400);--victim-surface:oklch(0.22 0.006 70);--victim-border:oklch(0.38 0.01 70);
+--accused:var(--oxblood-400);--accused-solid:var(--oxblood-600);--accused-foreground:var(--paper-50);--accused-surface:var(--oxblood-800);--accused-border:var(--oxblood-500);
+--revealed:var(--paper-50);--revealed-surface:oklch(0.30 0.025 88);--revealed-border:var(--paper-200);
+/* game: phases */
+--phase-explore:oklch(0.79 0.10 75);--phase-explore-surface:oklch(0.26 0.04 75);
+--phase-discuss:var(--moon-400);--phase-discuss-surface:var(--moon-800);
+--phase-vote:var(--oxblood-400);--phase-vote-surface:var(--oxblood-800);
+--phase-ending:var(--plum-400);--phase-ending-surface:var(--plum-800);
+/* game: player character hues (names always shown alongside) */
+--char-1:oklch(0.78 0.09 25);--char-2:oklch(0.80 0.09 65);--char-3:oklch(0.82 0.08 105);--char-4:oklch(0.78 0.08 150);--char-5:oklch(0.78 0.07 200);--char-6:oklch(0.77 0.07 250);--char-7:oklch(0.77 0.08 295);--char-8:oklch(0.77 0.08 340);
+color-scheme:dark;
+}
+
+/* ===== Day scene (secondary, light) ===== */
+.day{
+--background:var(--paper-100);--foreground:oklch(0.22 0.02 60);
+--card:var(--paper-50);--card-foreground:oklch(0.22 0.02 60);
+--popover:var(--paper-50);--popover-foreground:oklch(0.22 0.02 60);
+--primary:oklch(0.24 0.02 60);--primary-hover:oklch(0.32 0.02 60);--primary-foreground:var(--paper-50);
+--secondary:var(--paper-200);--secondary-foreground:oklch(0.22 0.02 60);
+--muted:var(--paper-200);--muted-foreground:oklch(0.45 0.025 65);
+--accent:oklch(0.88 0.03 85);--accent-foreground:oklch(0.22 0.02 60);
+--destructive:var(--oxblood-600);--destructive-hover:var(--oxblood-500);--destructive-foreground:var(--paper-50);--destructive-text:oklch(0.46 0.15 25);
+--border:oklch(0.80 0.03 80);--border-strong:oklch(0.66 0.03 75);--input:oklch(0.72 0.03 78);--input-bg:var(--paper-50);--ring:var(--brass-700);
+--paper-surface:var(--paper-50);--paper-surface-2:var(--paper-200);
+--overlay:oklch(0.22 0.02 60 / 0.55);
+--clue:oklch(0.47 0.09 70);--clue-foreground:var(--paper-50);--clue-surface:oklch(0.90 0.05 85);--clue-border:oklch(0.70 0.08 78);
+--clue-new:oklch(0.44 0.10 70);--clue-new-foreground:var(--paper-50);--clue-new-surface:oklch(0.88 0.08 88);--clue-new-border:oklch(0.62 0.11 78);
+--secret:oklch(0.45 0.10 300);--secret-foreground:var(--paper-50);--secret-surface:oklch(0.90 0.03 300);--secret-border:oklch(0.70 0.06 300);
+--alibi:oklch(0.45 0.07 160);--alibi-foreground:var(--paper-50);--alibi-surface:oklch(0.90 0.03 160);--alibi-border:oklch(0.70 0.05 160);
+--suspicion-0:oklch(0.50 0.01 70);
+--suspicion-1:oklch(0.50 0.09 85);--suspicion-1-surface:oklch(0.91 0.05 92);
+--suspicion-2:oklch(0.50 0.12 55);--suspicion-2-surface:oklch(0.90 0.05 58);
+--suspicion-3:oklch(0.46 0.15 25);--suspicion-3-surface:oklch(0.90 0.04 25);
+--victim:oklch(0.48 0.01 70);--victim-surface:oklch(0.88 0.006 70);--victim-border:oklch(0.72 0.01 70);
+--accused:oklch(0.46 0.15 25);--accused-surface:oklch(0.90 0.04 25);--accused-border:oklch(0.62 0.13 25);
+--revealed:oklch(0.22 0.02 60);--revealed-surface:oklch(0.97 0.03 92);--revealed-border:oklch(0.55 0.03 75);
+--phase-explore:oklch(0.47 0.09 70);--phase-explore-surface:oklch(0.90 0.05 80);
+--phase-discuss:oklch(0.45 0.08 240);--phase-discuss-surface:oklch(0.90 0.03 240);
+--phase-vote:oklch(0.46 0.15 25);--phase-vote-surface:oklch(0.90 0.04 25);
+--phase-ending:oklch(0.45 0.10 340);--phase-ending-surface:oklch(0.90 0.03 340);
+--char-1:oklch(0.48 0.12 25);--char-2:oklch(0.48 0.10 65);--char-3:oklch(0.47 0.09 110);--char-4:oklch(0.46 0.09 150);--char-5:oklch(0.46 0.08 200);--char-6:oklch(0.46 0.09 250);--char-7:oklch(0.46 0.10 295);--char-8:oklch(0.47 0.11 340);
+color-scheme:light;
+}
