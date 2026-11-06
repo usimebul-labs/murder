@@ -2,5 +2,5 @@
   "extends": "@mm/config/tsconfig/library.json",
   "compilerOptions": { "rootDir": "src", "outDir": "dist" },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
+  "exclude": ["src/**/*.test.ts", "src/__fixtures__"]
 }
