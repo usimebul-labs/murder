@@ -1,0 +1,28 @@
+{
+  "name": "@mm/game-protocol",
+  "version": "0.0.0",
+  "private": true,
+  "description": "게임 플레이 전용: 클라이언트(web)와 게임 서버(game) 사이 메시지 규약",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@mm/scenario-schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@mm/config": "workspace:*",
+    "typescript": "~5.9.3"
+  }
+}

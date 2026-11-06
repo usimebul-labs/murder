@@ -1,0 +1,27 @@
+{
+  "name": "murder",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "boundaries": "turbo boundaries",
+    "check": "pnpm lint && pnpm boundaries && turbo run typecheck test build",
+    "db:generate": "pnpm --filter @mm/db generate",
+    "db:migrate": "pnpm --filter @mm/db migrate",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.5",
+    "turbo": "2.11.10",
+    "typescript": "~5.9.3"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.5/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": ["**", "!**/packages/ui/src/styles", "!**/drizzle"]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/studio/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@mm/game-protocol": "스튜디오는 게임 플레이 모듈을 import할 수 없습니다. @mm/scenario-schema만 사용하세요.",
+                  "@mm/billing": "스튜디오는 게임 플레이 모듈을 import할 수 없습니다.",
+                  "@mm/web": "스튜디오는 게임 플레이 모듈을 import할 수 없습니다.",
+                  "@mm/game": "스튜디오는 게임 플레이 모듈을 import할 수 없습니다."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/web/**",
+        "apps/game/**",
+        "packages/game-protocol/**",
+        "packages/billing/**"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@mm/studio": "게임 플레이 모듈은 스튜디오를 import할 수 없습니다."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
+}

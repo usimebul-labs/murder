@@ -1,0 +1,26 @@
+{
+  "name": "@mm/billing",
+  "version": "0.0.0",
+  "private": true,
+  "description": "게임 플레이 전용: 결제 어댑터 인터페이스와 이용권 지급 (데모는 수동 지급만)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@mm/config": "workspace:*",
+    "typescript": "~5.9.3"
+  }
+}

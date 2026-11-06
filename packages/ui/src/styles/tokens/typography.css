@@ -1,0 +1,23 @@
+:root{
+--font-display:"Bodoni Moda","Nanum Myeongjo",serif;
+--font-serif:"Nanum Myeongjo","Bodoni Moda",serif;
+--font-sans:"IBM Plex Sans KR",system-ui,sans-serif;
+--font-mono:"Courier Prime","Nanum Gothic Coding",ui-monospace,monospace;
+/* scale — mobile-first, tuned for Hangul+Latin mixed text */
+--text-2xs:12px;--text-xs:13px;--text-sm:14px;--text-base:16px;--text-lg:18px;--text-xl:21px;--text-2xl:25px;--text-3xl:31px;--text-4xl:40px;--text-5xl:52px;
+--leading-tight:1.2;--leading-snug:1.35;--leading-normal:1.6;--leading-relaxed:1.75;
+--tracking-display:-0.01em;--tracking-caps:0.14em;--tracking-mono:0.02em;
+--weight-regular:400;--weight-medium:500;--weight-semibold:600;--weight-bold:700;
+/* semantic roles */
+--type-display:var(--weight-semibold) var(--text-4xl)/var(--leading-tight) var(--font-display);
+--type-h1:var(--weight-semibold) var(--text-3xl)/var(--leading-tight) var(--font-display);
+--type-h2:var(--weight-bold) var(--text-2xl)/var(--leading-snug) var(--font-serif);
+--type-h3:var(--weight-bold) var(--text-xl)/var(--leading-snug) var(--font-serif);
+--type-body:var(--weight-regular) var(--text-base)/var(--leading-normal) var(--font-sans);
+--type-body-sm:var(--weight-regular) var(--text-sm)/var(--leading-normal) var(--font-sans);
+--type-story:var(--weight-regular) var(--text-lg)/var(--leading-relaxed) var(--font-serif);
+--type-label:var(--weight-medium) var(--text-xs)/1.2 var(--font-sans);
+--type-mono:var(--weight-regular) var(--text-sm)/var(--leading-normal) var(--font-mono);
+--type-caps:var(--weight-bold) var(--text-2xs)/1 var(--font-mono);
+}
+@media (min-width:768px){:root{--text-4xl:48px;--text-5xl:64px;--text-3xl:34px}}

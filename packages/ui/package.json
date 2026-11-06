@@ -1,0 +1,37 @@
+{
+  "name": "@mm/ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "공용: 디자인 시스템 토큰(CSS)과 도메인 무관 기본 React 컴포넌트",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./design-system.css": "./src/styles/design-system.css",
+    "./tailwind.css": "./src/styles/tailwind-theme.css"
+  },
+  "files": [
+    "dist",
+    "src/styles"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.3.1"
+  },
+  "peerDependencies": {
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@mm/config": "workspace:*",
+    "@types/react": "^19",
+    "react": "^19.3.1",
+    "typescript": "~5.9.3"
+  }
+}

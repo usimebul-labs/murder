@@ -1,0 +1,2 @@
+/* Google Fonts 대체 폰트는 앱 layout의 <link>로 불러온다 (CSS @import 순서 문제 방지).
+   URL: @mm/ui의 GOOGLE_FONTS_URL. 라이선스 폰트가 생기면 교체 */
