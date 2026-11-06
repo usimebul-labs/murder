@@ -10,7 +10,15 @@ import type {
 } from "@mm/game-protocol";
 import type { Clue, Scenario } from "@mm/scenario-schema";
 import { type AuthUser, verifyToken } from "../auth.js";
-import { autoUnlockedClues, cluesAtLocation, pickEnding, tallyVotes } from "../game-logic.js";
+import {
+  autoUnlockedClues,
+  cluesAtLocation,
+  currentRound,
+  type GameFacts,
+  pickEnding,
+  renderPrivateScript,
+  tallyVotes,
+} from "../game-logic.js";
 import { createPhaseActor } from "../phase-machine.js";
 import { loadScenario } from "../scenario-loader.js";
 import { CharacterInfo, ClueState, GameState, PhaseInfo, Player } from "../state.js";
@@ -163,8 +171,8 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
       player.ready = false;
       this.sendTo(client, "character:script", {
         characterId,
-        privateScript: character.privateScript,
-        goals: character.goals,
+        privateScript: renderPrivateScript(character),
+        goals: character.objectives.map((o) => o.text),
       });
     });
 
@@ -226,14 +234,9 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
       if (this.currentPhase()?.kind !== "investigation") {
         return this.fail(client, "not-allowed-in-phase", "조사 시간이 아닙니다");
       }
-      const owned = this.owned.get(client.sessionId) ?? new Set();
-      const found = cluesAtLocation(
-        this.scenario,
-        location,
-        player.characterId,
-        this.state.phaseIndex,
-        owned,
-      );
+      const owned = this.owned.get(client.sessionId);
+      if (!owned) return;
+      const found = cluesAtLocation(this.scenario, location, player.characterId, this.facts());
       for (const clue of found) this.giveClue(client, clue);
     });
 
@@ -246,6 +249,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
         c.view?.add(clue);
         this.owned.get(c.sessionId)?.add(clueId);
       }
+      for (const c of this.clients) this.grantAutoUnlocked(c);
     });
 
     this.handle("vote:cast", (client, { suspectCharacterId }, player) => {
@@ -305,7 +309,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     if (phase.kind === "ending") {
       const accused = tallyVotes(this.votes.values());
       this.state.accusedCharacterId = accused ?? "";
-      this.state.endingId = pickEnding(this.scenario, accused).id;
+      this.state.endingId = pickEnding(this.scenario, { ...this.facts(), accusedId: accused }).id;
     }
 
     this.broadcast("phase:changed", {
@@ -349,10 +353,30 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     const owned = this.owned.get(client.sessionId);
     if (!characterId || !owned) return;
     for (;;) {
-      const next = autoUnlockedClues(this.scenario, characterId, this.state.phaseIndex, owned);
+      const next = autoUnlockedClues(this.scenario, characterId, this.facts());
       if (next.length === 0) return;
       for (const clue of next) this.giveClue(client, clue, false);
     }
+  }
+
+  /** 조건 판정용 진행 상황. 공유된 단서는 모든 플레이어의 보유 목록에도 들어간다 */
+  private facts(): GameFacts {
+    const owned = new Map<string, ReadonlySet<string>>();
+    const votes = new Map<string, string>();
+    for (const [sessionId, p] of this.state.players) {
+      if (!p.characterId) continue;
+      owned.set(p.characterId, this.owned.get(sessionId) ?? new Set());
+      const vote = this.votes.get(sessionId);
+      if (vote) votes.set(p.characterId, vote);
+    }
+    const publicClueIds = new Set<string>();
+    for (const clue of this.state.clues.values()) if (clue.sharedBy) publicClueIds.add(clue.id);
+    return {
+      round: currentRound(this.scenario, this.state.phaseIndex),
+      owned,
+      publicClueIds,
+      votes,
+    };
   }
 
   private clientByCharacter(characterId: string) {

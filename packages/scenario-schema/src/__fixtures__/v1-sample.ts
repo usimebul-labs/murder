@@ -1,7 +1,5 @@
-import type { ScenarioInput } from "./schema.js";
-
-/** 개발·테스트용 4인 샘플 시나리오 */
-export const sampleScenario = {
+/** v1 형식 샘플 (마이그레이션 테스트용) */
+export const v1Sample = {
   schemaVersion: 1,
   id: "raven-manor",
   meta: {
@@ -97,4 +95,4 @@ export const sampleScenario = {
       condition: { kind: "default" },
     },
   ],
-} satisfies ScenarioInput;
+};
