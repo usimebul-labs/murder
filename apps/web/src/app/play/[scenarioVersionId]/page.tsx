@@ -1,4 +1,4 @@
-import { GameRoom } from "@/components/game-room";
+import { GameRoom } from "@/components/game/game-room";
 
 export default async function PlayPage({
   params,

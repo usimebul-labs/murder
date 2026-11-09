@@ -6,6 +6,8 @@ export interface GameFacts {
   round: number;
   /** 캐릭터 id → 보유 단서 id */
   owned: ReadonlyMap<string, ReadonlySet<string>>;
+  /** 캐릭터 id → 한 번이라도 손에 넣은 단서 id (건넨 단서 포함). 없으면 owned를 쓴다 */
+  collected?: ReadonlyMap<string, ReadonlySet<string>>;
   /** 전체 공개된 단서 id */
   publicClueIds: ReadonlySet<string>;
   /** 지목된 캐릭터 (투표 전·미지목이면 null) */
@@ -31,9 +33,10 @@ export function evaluateCondition(c: Condition, facts: GameFacts, self?: string)
     case "always":
       return true;
     case "clue-collected": {
+      const pool = facts.collected ?? facts.owned;
       const by = who(c.by);
-      if (by) return facts.owned.get(by)?.has(c.clueId) ?? false;
-      return [...facts.owned.values()].some((set) => set.has(c.clueId));
+      if (by) return pool.get(by)?.has(c.clueId) ?? false;
+      return [...pool.values()].some((set) => set.has(c.clueId));
     }
     case "clue-public":
       return facts.publicClueIds.has(c.clueId);
@@ -80,7 +83,7 @@ export function autoUnlockedClues(
   characterId: string,
   facts: GameFacts,
 ): Clue[] {
-  const owned = facts.owned.get(characterId) ?? new Set<string>();
+  const owned = (facts.collected ?? facts.owned).get(characterId) ?? new Set<string>();
   return scenario.clues.filter(
     (c) =>
       c.distribution !== "search" &&
@@ -136,19 +139,112 @@ export function pickEnding(scenario: Scenario, facts: GameFacts): Ending {
   return ending;
 }
 
-/** 비밀 문서를 한 덩어리 마크다운으로 (G-02 화면이 구조화된 script를 쓰기 전까지의 임시 형식) */
-export function renderPrivateScript(character: Character): string {
-  const s = character.script;
-  const people = s.relationships.map((r) => `- ${r.characterId}: ${r.text}`).join("\n");
-  const night = s.timeline
-    .map((t) => `- ${t.time} ${t.text}${t.secret ? " (비밀)" : ""}`)
-    .join("\n");
-  return [
-    `## 당신은 누구인가\n${s.identity}`,
-    people && `## 당신이 아는 사람들\n${people}`,
-    night && `## 그날 밤의 행적\n${night}`,
-    `## 봉인된 진실\n${s.sealedTruth.text}`,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+/**
+ * 보드에 나와 있어야 하는 탐색 단서: 장소가 열렸고 해금 조건을 만족한 search 단서.
+ * 누가 이미 가져갔는지와 상관없이 돌려준다 (카드는 한 번 나오면 보드에 남는다).
+ */
+export function boardClues(scenario: Scenario, facts: GameFacts): Clue[] {
+  const open = new Set(
+    scenario.locations.filter((l) => facts.round >= l.openFromRound).map((l) => l.id),
+  );
+  return scenario.clues.filter(
+    (c) =>
+      c.distribution === "search" &&
+      !!c.locationId &&
+      open.has(c.locationId) &&
+      isUnlocked(c, facts),
+  );
+}
+
+/**
+ * 탐색 라운드의 수집 순서. seat-rotating이면 라운드마다 시작 순번이 한 칸씩 밀린다.
+ * 각자 pointsPerPlayer번씩, 한 바퀴에 한 장씩 돌아가며 줍는다.
+ */
+export function turnSequence(
+  seats: readonly string[],
+  round: number,
+  pointsPerPlayer: number,
+  order: "seat-rotating" | "seat" | "random" | "free",
+  random: () => number = Math.random,
+): string[] {
+  let base = [...seats];
+  if (order === "seat-rotating" && base.length > 0) {
+    const shift = (round - 1) % base.length;
+    base = [...base.slice(shift), ...base.slice(0, shift)];
+  } else if (order === "random") {
+    base = shuffle(base, random);
+  }
+  const sequence: string[] = [];
+  for (let i = 0; i < pointsPerPlayer; i++) sequence.push(...base);
+  return sequence;
+}
+
+export function shuffle<T>(items: readonly T[], random: () => number = Math.random): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    const tmp = out[i] as T;
+    out[i] = out[j] as T;
+    out[j] = tmp;
+  }
+  return out;
+}
+
+/** 투표 집계: 최다 득표 캐릭터들 (동률이면 여럿, 표가 없으면 빈 배열) */
+export function topVoted(votes: Iterable<string>): string[] {
+  const counts = new Map<string, number>();
+  for (const v of votes) counts.set(v, (counts.get(v) ?? 0) + 1);
+  const max = Math.max(0, ...counts.values());
+  if (max === 0) return [];
+  return [...counts].filter(([, n]) => n === max).map(([id]) => id);
+}
+
+export interface ObjectiveScore {
+  id: string;
+  kind: "main" | "sub";
+  text: string;
+  points: number;
+  judge: "auto" | "jury" | "gm";
+  prompt?: string;
+  achieved: boolean | null;
+}
+
+/**
+ * 목표 결산. 자동 판정은 조건으로, 판정단 목표는 juryVerdict(과반)로 정한다.
+ * 진범에게 투표한 사람(진범 본인 제외)은 scoring.culpritVotePoints를 더 받는다.
+ */
+export function scoreCharacter(
+  scenario: Scenario,
+  character: Character,
+  facts: GameFacts,
+  juryVerdict: (objectiveId: string) => boolean | null,
+): { objectives: ObjectiveScore[]; culpritVote: boolean; total: number } {
+  const objectives = character.objectives.map((o): ObjectiveScore => {
+    const achieved =
+      o.judge.kind === "auto"
+        ? evaluateCondition(o.judge.condition, facts, character.id)
+        : juryVerdict(o.id);
+    return {
+      id: o.id,
+      kind: o.kind,
+      text: o.text,
+      points: o.points,
+      judge: o.judge.kind,
+      prompt: o.judge.kind === "auto" ? undefined : o.judge.prompt,
+      achieved,
+    };
+  });
+  const culpritIds = new Set(scenario.characters.filter((c) => c.isCulprit).map((c) => c.id));
+  const vote = facts.votes?.get(character.id);
+  const culpritVote = !character.isCulprit && !!vote && culpritIds.has(vote);
+  const total =
+    objectives.reduce((sum, o) => sum + (o.achieved ? o.points : 0), 0) +
+    (culpritVote ? scenario.scoring.culpritVotePoints : 0);
+  return { objectives, culpritVote, total };
+}
+
+/** 결말 본문의 {accused}를 지목된 인물 이름으로 바꾼다 */
+export function renderEndingBody(scenario: Scenario, ending: Ending, accusedId: string | null) {
+  const name = scenario.characters.find((c) => c.id === accusedId)?.name ?? "아무도";
+  return ending.body.replaceAll("{accused}", name);
 }

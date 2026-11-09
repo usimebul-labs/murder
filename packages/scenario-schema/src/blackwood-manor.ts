@@ -23,6 +23,8 @@ export const blackwoodManor = {
     difficulty: "normal",
     tags: ["클래식", "저택", "독살", "초보 환영"],
     contentWarnings: ["독살", "죽음"],
+    coverImageKey: "scenarios/blackwood-manor/cover/cover.svg",
+    mapImageKey: "scenarios/blackwood-manor/map/floorplan.svg",
   },
   prologue: [
     {
@@ -49,6 +51,7 @@ export const blackwoodManor = {
   victim: {
     name: "에드먼드 블랙우드",
     description: "68세. 블랙우드 직물의 창업주. 심장병으로 매일 밤 디기탈리스를 소량 복용했다.",
+    portraitKey: "scenarios/blackwood-manor/portraits/edmund.svg",
   },
   locations: [
     {
@@ -237,6 +240,7 @@ export const blackwoodManor = {
       ],
       isCulprit: false,
       colorIndex: 1,
+      portraitKey: "scenarios/blackwood-manor/portraits/henry.svg",
     },
     {
       id: "margaret",
@@ -323,6 +327,7 @@ export const blackwoodManor = {
       ],
       isCulprit: false,
       colorIndex: 2,
+      portraitKey: "scenarios/blackwood-manor/portraits/margaret.svg",
     },
     {
       id: "arthur",
@@ -423,6 +428,7 @@ export const blackwoodManor = {
       ],
       isCulprit: false,
       colorIndex: 3,
+      portraitKey: "scenarios/blackwood-manor/portraits/arthur.svg",
     },
     {
       id: "eleanor",
@@ -515,6 +521,7 @@ export const blackwoodManor = {
       ],
       isCulprit: false,
       colorIndex: 4,
+      portraitKey: "scenarios/blackwood-manor/portraits/eleanor.svg",
     },
     {
       id: "victor",
@@ -618,6 +625,7 @@ export const blackwoodManor = {
       ],
       isCulprit: true,
       colorIndex: 5,
+      portraitKey: "scenarios/blackwood-manor/portraits/victor.svg",
     },
     {
       id: "clara",
@@ -719,6 +727,7 @@ export const blackwoodManor = {
       ],
       isCulprit: false,
       colorIndex: 6,
+      portraitKey: "scenarios/blackwood-manor/portraits/clara.svg",
     },
   ],
   clues: [
@@ -733,6 +742,7 @@ export const blackwoodManor = {
       unlock: {
         fromRound: 1,
       },
+      imageKey: "scenarios/blackwood-manor/clues/ev-p1.svg",
     },
     {
       id: "ev-01",
@@ -747,6 +757,7 @@ export const blackwoodManor = {
         fromRound: 1,
       },
       isKey: true,
+      imageKey: "scenarios/blackwood-manor/clues/ev-01.svg",
     },
     {
       id: "ev-02",
@@ -761,6 +772,7 @@ export const blackwoodManor = {
         fromRound: 1,
       },
       isKey: true,
+      imageKey: "scenarios/blackwood-manor/clues/ev-02.svg",
     },
     {
       id: "ev-03",
@@ -775,6 +787,7 @@ export const blackwoodManor = {
         fromRound: 1,
       },
       isKey: true,
+      imageKey: "scenarios/blackwood-manor/clues/ev-03.svg",
     },
     {
       id: "ev-04",
@@ -788,6 +801,7 @@ export const blackwoodManor = {
       unlock: {
         fromRound: 1,
       },
+      imageKey: "scenarios/blackwood-manor/clues/ev-04.svg",
     },
     {
       id: "ev-05",
@@ -801,6 +815,7 @@ export const blackwoodManor = {
       unlock: {
         fromRound: 1,
       },
+      imageKey: "scenarios/blackwood-manor/clues/ev-05.svg",
     },
     {
       id: "ev-06",
@@ -814,6 +829,7 @@ export const blackwoodManor = {
       unlock: {
         fromRound: 1,
       },
+      imageKey: "scenarios/blackwood-manor/clues/ev-06.svg",
     },
     {
       id: "ev-07",
@@ -827,6 +843,7 @@ export const blackwoodManor = {
       unlock: {
         fromRound: 1,
       },
+      imageKey: "scenarios/blackwood-manor/clues/ev-07.svg",
     },
     {
       id: "ev-08",
@@ -840,6 +857,7 @@ export const blackwoodManor = {
       unlock: {
         fromRound: 1,
       },
+      imageKey: "scenarios/blackwood-manor/clues/ev-08.svg",
     },
     {
       id: "ev-09",
@@ -858,6 +876,7 @@ export const blackwoodManor = {
         },
       },
       isKey: true,
+      imageKey: "scenarios/blackwood-manor/clues/ev-09.svg",
     },
     {
       id: "ev-10",
@@ -879,6 +898,7 @@ export const blackwoodManor = {
         },
       },
       isKey: true,
+      imageKey: "scenarios/blackwood-manor/clues/ev-10.svg",
     },
     {
       id: "ev-11",
@@ -893,6 +913,7 @@ export const blackwoodManor = {
         fromRound: 2,
       },
       isKey: true,
+      imageKey: "scenarios/blackwood-manor/clues/ev-11.svg",
     },
     {
       id: "ev-12",
@@ -906,6 +927,7 @@ export const blackwoodManor = {
       unlock: {
         fromRound: 2,
       },
+      imageKey: "scenarios/blackwood-manor/clues/ev-12.svg",
     },
     {
       id: "ev-13",
@@ -919,6 +941,7 @@ export const blackwoodManor = {
       unlock: {
         fromRound: 2,
       },
+      imageKey: "scenarios/blackwood-manor/clues/ev-13.svg",
     },
     {
       id: "ev-14",
@@ -932,6 +955,7 @@ export const blackwoodManor = {
       unlock: {
         fromRound: 2,
       },
+      imageKey: "scenarios/blackwood-manor/clues/ev-14.svg",
     },
     {
       id: "ev-15",
@@ -946,6 +970,7 @@ export const blackwoodManor = {
         fromRound: 2,
       },
       isKey: true,
+      imageKey: "scenarios/blackwood-manor/clues/ev-15.svg",
     },
     {
       id: "ev-16",
@@ -959,6 +984,7 @@ export const blackwoodManor = {
       unlock: {
         fromRound: 2,
       },
+      imageKey: "scenarios/blackwood-manor/clues/ev-16.svg",
     },
     {
       id: "ev-17",
@@ -972,6 +998,7 @@ export const blackwoodManor = {
       unlock: {
         fromRound: 2,
       },
+      imageKey: "scenarios/blackwood-manor/clues/ev-17.svg",
     },
     {
       id: "ev-18",
@@ -990,6 +1017,7 @@ export const blackwoodManor = {
         },
       },
       isKey: true,
+      imageKey: "scenarios/blackwood-manor/clues/ev-18.svg",
     },
     {
       id: "ev-19",
@@ -1004,6 +1032,7 @@ export const blackwoodManor = {
         fromRound: 3,
       },
       isKey: true,
+      imageKey: "scenarios/blackwood-manor/clues/ev-19.svg",
     },
     {
       id: "ev-20",
@@ -1018,6 +1047,7 @@ export const blackwoodManor = {
         fromRound: 3,
       },
       isKey: true,
+      imageKey: "scenarios/blackwood-manor/clues/ev-20.svg",
     },
     {
       id: "ev-21",
@@ -1032,6 +1062,7 @@ export const blackwoodManor = {
         fromRound: 3,
       },
       isKey: true,
+      imageKey: "scenarios/blackwood-manor/clues/ev-21.svg",
     },
     {
       id: "ev-22",
@@ -1045,6 +1076,7 @@ export const blackwoodManor = {
       unlock: {
         fromRound: 3,
       },
+      imageKey: "scenarios/blackwood-manor/clues/ev-22.svg",
     },
     {
       id: "ev-23",
@@ -1059,6 +1091,7 @@ export const blackwoodManor = {
         fromRound: 3,
       },
       isKey: true,
+      imageKey: "scenarios/blackwood-manor/clues/ev-23.svg",
     },
   ],
   phases: [

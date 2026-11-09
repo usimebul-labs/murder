@@ -12,9 +12,10 @@ export function toPublicScenario(s: Scenario) {
     prologue: s.prologue,
     rules: s.rules,
     victim: s.victim,
-    locations: s.locations.map(({ id, name, map, openFromRound }) => ({
+    locations: s.locations.map(({ id, name, description, map, openFromRound }) => ({
       id,
       name,
+      description,
       map,
       openFromRound,
     })),

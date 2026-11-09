@@ -68,6 +68,8 @@ export const ScenarioMetaSchema = z.object({
   estimatedMinutes: z.number().int().min(10).max(600),
   difficulty: z.enum(["easy", "normal", "hard"]),
   coverImageKey: z.string().optional(),
+  /** 저택 평면도 이미지 (G-03). 장소의 map 좌표는 이 이미지 위 비율 좌표 */
+  mapImageKey: z.string().optional(),
   tags: z.array(z.string().max(20)).max(10).default([]),
   contentWarnings: z.array(z.string().max(20)).max(10).default([]),
 });
@@ -311,7 +313,13 @@ export const ScenarioSchema = z.object({
   meta: ScenarioMetaSchema,
   prologue: z.array(PrologueChapterSchema).max(10).default([]),
   rules: z.array(z.string().max(300)).max(20).default([]),
-  victim: z.object({ name: z.string().max(40), description: z.string().max(500) }).optional(),
+  victim: z
+    .object({
+      name: z.string().max(40),
+      description: z.string().max(500),
+      portraitKey: z.string().optional(),
+    })
+    .optional(),
   locations: z.array(LocationSchema).max(30).default([]),
   characters: z.array(CharacterSchema).min(2).max(8),
   clues: z.array(ClueSchema).max(300),

@@ -2,11 +2,15 @@ import { sampleScenario, validateScenario } from "@mm/scenario-schema";
 import { describe, expect, it } from "vitest";
 import {
   autoUnlockedClues,
+  boardClues,
   cluesAtLocation,
   currentRound,
   type GameFacts,
   pickEnding,
+  scoreCharacter,
   tallyVotes,
+  topVoted,
+  turnSequence,
 } from "./game-logic.js";
 
 const result = validateScenario(sampleScenario);
@@ -73,5 +77,54 @@ describe("game-logic", () => {
     expect(pickEnding(scenario, facts({ accusedId: "victor" })).id).toBe("justice");
     expect(pickEnding(scenario, facts({ accusedId: null })).id).toBe("unsolved");
     expect(pickEnding(scenario, facts({ accusedId: "arthur" })).id).toBe("wrong");
+  });
+
+  it("탐색 순서는 라운드마다 한 칸씩 밀리고, 수집 횟수만큼 돈다", () => {
+    expect(turnSequence(["a", "b", "c"], 1, 1, "seat-rotating")).toEqual(["a", "b", "c"]);
+    expect(turnSequence(["a", "b", "c"], 2, 1, "seat-rotating")).toEqual(["b", "c", "a"]);
+    expect(turnSequence(["a", "b"], 3, 2, "seat-rotating")).toEqual(["a", "b", "a", "b"]);
+  });
+
+  it("보드에는 열린 장소의 해금된 탐색 단서만 나온다", () => {
+    const r1 = ids(boardClues(scenario, facts()));
+    expect(r1).toContain("ev-01");
+    expect(r1).not.toContain("ev-11");
+    expect(r1).not.toContain("ev-19");
+    expect(ids(boardClues(scenario, facts({ round: 3 })))).toContain("ev-19");
+  });
+
+  it("건넨 단서도 수집한 것으로 본다", () => {
+    const owned = new Map([["clara", new Set<string>()]]);
+    const collected = new Map([["clara", new Set(["ev-03"])]]);
+    const after = ids(
+      boardClues(scenario, { round: 2, owned, collected, publicClueIds: new Set() }),
+    );
+    expect(after).toContain("ev-09");
+  });
+
+  it("동표면 최다 득표자를 모두 돌려준다", () => {
+    expect(topVoted(["a", "b"])).toEqual(["a", "b"]);
+    expect(topVoted(["a", "a", "b"])).toEqual(["a"]);
+    expect(topVoted([])).toEqual([]);
+  });
+
+  it("목표 결산: 자동 판정, 판정단, 진범 지목 점수", () => {
+    const eleanor = scenario.characters.find((c) => c.id === "eleanor");
+    const margaret = scenario.characters.find((c) => c.id === "margaret");
+    if (!eleanor || !margaret) throw new Error("인물이 없습니다");
+    const f = facts({
+      round: 3,
+      accusedId: "victor",
+      votes: new Map([["eleanor", "victor"]]),
+      publicClueIds: new Set(["ev-17"]),
+      owned: new Map([["margaret", new Set(["ev-22"])]]),
+    });
+    const e = scoreCharacter(scenario, eleanor, f, () => null);
+    expect(e.objectives.map((o) => o.achieved)).toEqual([true, true]);
+    expect(e.culpritVote).toBe(true);
+    expect(e.total).toBe(4);
+    const m = scoreCharacter(scenario, margaret, f, () => true);
+    expect(m.objectives.map((o) => o.achieved)).toEqual([true, true]);
+    expect(m.total).toBe(3);
   });
 });
