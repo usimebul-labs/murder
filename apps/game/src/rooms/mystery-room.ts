@@ -189,6 +189,9 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
   onReconnect(client: MysteryClient) {
     const player = this.state.players.get(client.sessionId);
     if (player) player.connected = true;
+    // 새로고침으로 다시 붙은 화면은 개별 메시지를 모두 잃었으니 다시 보낸다
+    this.sendTo(client, "scenario:public", toPublicScenario(this.scenario));
+    this.restoreClient(client);
   }
 
   onLeave(client: MysteryClient) {
