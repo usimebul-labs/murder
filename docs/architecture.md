@@ -28,7 +28,8 @@
 
 ## 다음 할 일
 
-- [ ] Supabase 로그인(카카오·구글) + 초대 코드 화면
+- [x] Supabase 로그인(카카오·구글)
+- [ ] 초대 코드 화면, 게임 입장 시 `demo_access` 확인
 - [ ] 게임 종료 시 기록 저장 (`games`, `game_participants`, `game_chat_logs`)
 - [ ] 클라이언트 LiveKit 연결, 밀담 음성 방
 - [ ] 스튜디오: Supabase 연동, 폼 에디터(React Hook Form), Tiptap 대본, React Flow 페이즈 흐름, 발행
