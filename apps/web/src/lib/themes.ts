@@ -218,7 +218,9 @@ const PHASE_DESC: Record<string, string> = {
 /** 블랙우드 프롤로그 각 장의 제목·부제 (본문은 시나리오에서 읽는다) */
 const BLACKWOOD_CHAPTERS = [
   { title: "폭풍이 다가오는 생일 밤", subtitle: "1938. 10. 14 · 요크셔 황무지" },
-  { title: "건배사 뒤, 아무도 웃지 않았다", subtitle: "1938. 10. 14 · 만찬" },
+  { title: "저택의 여섯 사람", subtitle: "1938. 10. 14 · 블랙우드 저택" },
+  { title: "건배사 뒤, 아무도 웃지 않았다", subtitle: "1938. 10. 14 · 20:15 만찬" },
+  { title: "문이 여러 번 열린 밤", subtitle: "1938. 10. 14 · 21:00 – 23:00" },
   { title: "다리가 끊긴 밤, 서재의 안락의자", subtitle: "1938. 10. 14 · 23:40" },
 ];
 

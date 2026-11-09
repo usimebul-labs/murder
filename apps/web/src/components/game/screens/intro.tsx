@@ -2,7 +2,7 @@
 
 import { cn } from "@mm/ui";
 import { ChevronLeft, ChevronRight, CircleCheck, Shuffle } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { josa } from "@/lib/josa";
 import { ActionBar, Avatar, asset, btn, Countdown, Eyebrow, Portrait, TopBar } from "../primitives";
 import type { GameContext } from "../types";
@@ -16,9 +16,19 @@ export function Prologue({ ctx }: { ctx: GameContext }) {
   const players = Object.values(state.players);
   const done = players.filter((p) => p.done).length;
   const chapter = page > 0 ? chapters[page - 1] : undefined;
+  const scroller = useRef<HTMLElement>(null);
+  /** 소설을 천천히 읽는 속도(분당 450자 안팎)로 잡은 예상 읽기 시간 */
+  const readMinutes = Math.max(
+    1,
+    Math.round(chapters.reduce((n, ch) => n + ch.body.length, 0) / 450),
+  );
+  const turn = (to: number) => {
+    setPage(to);
+    scroller.current?.scrollTo({ top: 0 });
+  };
 
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-[var(--ink-950)]">
+    <div className="relative flex h-dvh flex-col overflow-hidden bg-[var(--ink-950)]">
       {scenario?.meta.coverImageKey && (
         // biome-ignore lint/performance/noImgElement: 정적 SVG 표지
         <img
@@ -42,10 +52,16 @@ export function Prologue({ ctx }: { ctx: GameContext }) {
           }
         />
       </div>
-      <main className="relative flex flex-1 flex-col items-center justify-center px-6 py-10 text-center">
-        <div key={page} className="max-w-2xl animate-[nm-fade-up_640ms_var(--ease-quiet)]">
+      <main
+        ref={scroller}
+        className="relative flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-10"
+      >
+        <div
+          key={page}
+          className="m-auto w-full max-w-2xl animate-[nm-fade-up_640ms_var(--ease-quiet)]"
+        >
           {page === 0 ? (
-            <>
+            <div className="text-center">
               <Eyebrow tone="var(--primary)">
                 CASE {scenario?.meta.caseNumber} · {scenario?.meta.setting?.year}{" "}
                 {scenario?.meta.setting?.place}
@@ -56,15 +72,30 @@ export function Prologue({ ctx }: { ctx: GameContext }) {
               <p className="mt-5 font-serif text-lg leading-relaxed text-[var(--paper-300)]">
                 {scenario?.meta.synopsis}
               </p>
-            </>
+              {chapters.length > 0 && (
+                <p className="mt-8 font-mono text-xs tracking-[0.12em] text-muted-foreground">
+                  PROLOGUE {chapters.length}장 · 약 {readMinutes}분
+                </p>
+              )}
+            </div>
           ) : (
             chapter && (
-              <>
-                <Eyebrow tone="var(--primary)">PROLOGUE {chapter.title}</Eyebrow>
-                <p className="mt-6 whitespace-pre-wrap font-serif text-xl leading-[1.9] text-[var(--paper-100)] md:text-2xl">
-                  {chapter.body}
-                </p>
-              </>
+              <article className="mx-auto max-w-[62ch]">
+                <Eyebrow tone="var(--primary)">
+                  PROLOGUE {chapter.title} · {page} / {chapters.length}
+                </Eyebrow>
+                <div className="mt-6 flex flex-col gap-5 font-serif text-[17px] leading-[1.9] text-[var(--paper-100)] [text-wrap:pretty] md:text-lg">
+                  {chapter.body
+                    .split(/\n\s*\n/)
+                    .filter((t) => t.trim())
+                    .map((text, i) => (
+                      // biome-ignore lint/suspicious/noArrayIndexKey: 문단 순서는 바뀌지 않는다
+                      <p key={i} className="whitespace-pre-line">
+                        {text}
+                      </p>
+                    ))}
+                </div>
+              </article>
             )
           )}
         </div>
@@ -73,7 +104,7 @@ export function Prologue({ ctx }: { ctx: GameContext }) {
         <button
           type="button"
           disabled={page === 0}
-          onClick={() => setPage((p) => p - 1)}
+          onClick={() => turn(page - 1)}
           className={cn(btn.base, btn.ghost)}
         >
           <ChevronLeft size={16} /> 이전
@@ -84,7 +115,7 @@ export function Prologue({ ctx }: { ctx: GameContext }) {
         {page < total - 1 ? (
           <button
             type="button"
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() => turn(page + 1)}
             className={cn(btn.base, btn.primary)}
           >
             기록 펼치기 <ChevronRight size={16} />
