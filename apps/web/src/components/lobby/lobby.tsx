@@ -327,7 +327,7 @@ function InviteEntry() {
   return (
     <section
       aria-label="초대받은 방으로 입장"
-      className="flex w-full flex-wrap items-center justify-between gap-x-6 gap-y-3.5 self-end rounded-[6px] bg-[color-mix(in_oklch,var(--background)_38%,transparent)] px-[18px] py-4 backdrop-blur-[14px] sm:w-[min(100%,600px)]"
+      className="flex w-full flex-wrap items-center justify-between gap-x-6 gap-y-3.5 self-start rounded-[6px] bg-[color-mix(in_oklch,var(--background)_38%,transparent)] py-4 backdrop-blur-[14px] sm:w-[min(100%,600px)]"
     >
       <div className="flex min-w-0 items-center gap-3">
         <span className="flex size-9 flex-none items-center justify-center rounded-full border border-border-strong text-primary">
