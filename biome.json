@@ -11,6 +11,7 @@
       "!**/packages/ui/src/styles",
       "!**/drizzle",
       "!**/public/scenarios",
+      "!**/public/themes",
       "!**/.sim"
     ]
   },
