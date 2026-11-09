@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@mm/ui";
-import { BookOpen, ChevronLeft, ChevronRight, KeyRound, Search } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, KeyRound, LoaderCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -314,14 +314,19 @@ function InviteEntry() {
   const router = useRouter();
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const target = resolveInvite(value);
-    if (!value.trim()) return setError("초대 링크나 방 코드를 입력해 주세요.");
-    if (!target) return setError("초대 링크 형식이 아니에요. 받은 링크를 그대로 붙여 넣어 주세요.");
+    if (busy) return;
+    setBusy(true);
+    const result = await resolveInvite(value);
+    if ("error" in result) {
+      setBusy(false);
+      return setError(result.error);
+    }
     setError(null);
-    router.push(target);
+    router.push(result.path);
   };
 
   return (
@@ -345,8 +350,8 @@ function InviteEntry() {
         <div className="nm-field min-w-0 flex-1">
           <input
             className="nm-input nm-input--mono"
-            placeholder="초대 링크 또는 방 코드"
-            aria-label="초대 링크 또는 방 코드"
+            placeholder="초대 링크 또는 초대 코드"
+            aria-label="초대 링크 또는 초대 코드"
             aria-invalid={!!error}
             aria-describedby={error ? "invite-error" : undefined}
             value={value}
@@ -361,7 +366,8 @@ function InviteEntry() {
             </span>
           )}
         </div>
-        <button type="submit" className="nm-btn nm-btn--primary">
+        <button type="submit" className="nm-btn nm-btn--primary" aria-busy={busy} disabled={busy}>
+          {busy && <LoaderCircle size={16} className="animate-spin" aria-hidden />}
           입장
         </button>
       </form>

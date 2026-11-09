@@ -1,14 +1,17 @@
 import { type AuthContext, type Client, Room } from "@colyseus/core";
 import { StateView } from "@colyseus/schema";
-import type {
-  ChatMessage,
-  ClientMessages,
-  ClueView,
-  CreateRoomOptions,
-  ErrorCode,
-  GameResult,
-  JoinRoomOptions,
-  ServerMessages,
+import {
+  type ChatMessage,
+  type ClientMessages,
+  type ClueView,
+  type CreateRoomOptions,
+  type ErrorCode,
+  type GameResult,
+  type JoinRoomOptions,
+  MAX_ROOM_TITLE,
+  normalizeRoomTags,
+  type RoomListing,
+  type ServerMessages,
 } from "@mm/game-protocol";
 import { type Clue, type Phase, type Scenario, toPublicScenario } from "@mm/scenario-schema";
 import { type AuthUser, verifyToken } from "../auth.js";
@@ -27,6 +30,7 @@ import {
 } from "../game-logic.js";
 import { josa } from "../josa.js";
 import { createPhaseActor } from "../phase-machine.js";
+import { createRoomCode } from "../room-code.js";
 import { loadScenario } from "../scenario-loader.js";
 import {
   CharacterInfo,
@@ -65,6 +69,10 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
   private turnSeq: string[] = [];
   private turnIndex = -1;
   private speakerIndex = -1;
+  /** 모집 인원 (방을 만들 때 시나리오 최소~최대 인원 사이에서 고른다) */
+  private capacity = 0;
+  /** 대기실 목록에 보이는 방 정보 */
+  private listing!: RoomListing;
   private phaseTimer?: Timer;
   private turnTimer?: Timer;
   private speakerTimer?: Timer;
@@ -75,8 +83,13 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
 
   async onCreate(options: CreateRoomOptions) {
     this.scenario = await loadScenario(options.scenarioVersionId);
+    const meta = this.scenario.meta;
+    const wanted = Number(options.maxPlayers) || meta.maxPlayers;
+    this.capacity = Math.min(meta.maxPlayers, Math.max(meta.minPlayers, Math.round(wanted)));
     // 재접속 대기 중인 자리와 관전자를 위해 여유를 둔다. 플레이어 수는 onJoin에서 제한한다
-    this.maxClients = this.scenario.meta.maxPlayers * 2;
+    this.maxClients = this.capacity * 2;
+    // 초대 코드(RAVEN-0427)를 방 id로 쓴다. 초대 링크와 코드 입장이 같은 값을 쓴다
+    this.roomId = await createRoomCode();
     this.phase = createPhaseActor(this.scenario.phases.length);
     this.castingDone = !this.hasSelectPhase();
 
@@ -111,7 +124,22 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
       );
     }
     this.setState(state);
-    this.setMetadata({ scenarioTitle: this.scenario.meta.title, preview: !!options.preview });
+    this.listing = {
+      code: this.roomId,
+      scenarioVersionId: options.scenarioVersionId,
+      title:
+        String(options.title ?? "")
+          .trim()
+          .slice(0, MAX_ROOM_TITLE) || meta.title,
+      tags: normalizeRoomTags(options.tags),
+      players: 0,
+      maxPlayers: this.capacity,
+      status: "waiting",
+    };
+    await this.setMatchmaking({
+      metadata: { ...this.listing, scenarioTitle: meta.title, preview: !!options.preview },
+      private: options.visibility === "private",
+    });
     this.registerMessages();
   }
 
@@ -131,7 +159,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
       this.state.players.set(client.sessionId, player);
     } else {
       if (this.state.status !== "lobby") throw new Error("이미 시작된 사건입니다");
-      if (this.state.players.size >= this.scenario.meta.maxPlayers) {
+      if (this.state.players.size >= this.capacity) {
         throw new Error("방이 가득 찼습니다");
       }
       this.state.players.set(
@@ -146,6 +174,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
 
     this.sendTo(client, "scenario:public", toPublicScenario(this.scenario));
     this.restoreClient(client);
+    void this.syncListing();
   }
 
   async onDrop(client: MysteryClient) {
@@ -167,6 +196,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     if (!player) return;
     if (this.state.status === "lobby") {
       this.state.players.delete(client.sessionId);
+      void this.syncListing();
       if (player.isHost) {
         const next = this.state.players.values().next().value;
         if (next) next.isHost = true;
@@ -270,6 +300,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
         const problem = this.startProblem();
         if (problem) return this.fail(client, "not-allowed-in-phase", problem);
         this.state.status = "playing";
+        void this.syncListing();
         this.phase.send({ type: "START" });
         if (this.castingDone) this.sendScripts();
         this.syncPhase();
@@ -420,6 +451,18 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
         }),
       );
     });
+  }
+
+  /** 대기실 목록의 인원·상태를 지금 방 상태에 맞춘다 */
+  private async syncListing() {
+    const next: RoomListing = {
+      ...this.listing,
+      players: this.state.players.size,
+      status: this.state.status === "lobby" ? "waiting" : "playing",
+    };
+    if (next.players === this.listing.players && next.status === this.listing.status) return;
+    this.listing = next;
+    await this.setMetadata({ ...this.metadata, ...next });
   }
 
   /* ───────── 페이즈 진행 ───────── */

@@ -15,6 +15,55 @@ export interface CreateRoomOptions {
   scenarioVersionId: string;
   /** 미리보기 방 여부. 켜면 최소 인원 없이 시작할 수 있다 (테스트 플레이) */
   preview?: boolean;
+  /** 대기실 목록에 보이는 방 제목 (최대 30자) */
+  title?: string;
+  /** 모집 인원. 시나리오의 최소~최대 인원 사이로 맞춘다 */
+  maxPlayers?: number;
+  /** 방 성격 (최대 3개, 짝지어진 태그는 하나만) */
+  tags?: RoomTag[];
+  /** public이면 대기실 목록에 보이고, private이면 초대 코드로만 들어온다 */
+  visibility?: RoomVisibility;
+}
+
+export const ROOM_TAGS = ["beginner", "veteran", "casual", "roleplay", "voice", "chat"] as const;
+export type RoomTag = (typeof ROOM_TAGS)[number];
+/** 함께 고를 수 없는 태그 쌍 */
+export const ROOM_TAG_EXCLUSIVE: [RoomTag, RoomTag][] = [
+  ["beginner", "veteran"],
+  ["voice", "chat"],
+];
+export const MAX_ROOM_TAGS = 3;
+export const MAX_ROOM_TITLE = 30;
+export type RoomVisibility = "public" | "private";
+
+/** 초대 코드 형식: 영문 대문자 4~6자 + 숫자 4자리 (예: RAVEN-0427). 방 id로도 쓴다 */
+export const ROOM_CODE_PATTERN = /^[A-Z]{4,6}-\d{4}$/;
+
+/** 대기실 목록·초대 코드에 쓰는 방 정보 (Colyseus 방 metadata) */
+export interface RoomListing {
+  code: string;
+  scenarioVersionId: string;
+  title: string;
+  tags: RoomTag[];
+  players: number;
+  maxPlayers: number;
+  status: "waiting" | "playing";
+}
+
+/** 태그 목록을 규칙(허용 값, 쌍 배타, 최대 개수)에 맞게 정리한다 */
+export function normalizeRoomTags(input: unknown): RoomTag[] {
+  if (!Array.isArray(input)) return [];
+  const out: RoomTag[] = [];
+  for (const t of input) {
+    if (!(ROOM_TAGS as readonly unknown[]).includes(t)) continue;
+    const tag = t as RoomTag;
+    if (out.includes(tag)) continue;
+    const pair = ROOM_TAG_EXCLUSIVE.find((p) => p.includes(tag));
+    if (pair && out.some((x) => pair.includes(x))) continue;
+    out.push(tag);
+    if (out.length >= MAX_ROOM_TAGS) break;
+  }
+  return out;
 }
 
 /** 방에 들어올 때 보내는 옵션. 인증 토큰은 Colyseus auth 헤더로 별도 전달 */

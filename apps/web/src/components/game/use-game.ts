@@ -12,6 +12,7 @@ import {
 import type { PublicScenario } from "@mm/scenario-schema";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createGameClient } from "@/lib/game-client";
+import { takeHandedOffRoom } from "@/lib/room-handoff";
 import type { GameSnapshot, Script } from "./types";
 
 export interface Toast {
@@ -47,7 +48,7 @@ export function useGame(scenarioVersionId: string, initialRoomId?: string) {
   );
 
   const attach = useCallback(
-    (joined: Room) => {
+    (joined: Room, buffered: [string, unknown][] = []) => {
       roomRef.current = joined;
       setRoom(joined);
       try {
@@ -56,26 +57,30 @@ export function useGame(scenarioVersionId: string, initialRoomId?: string) {
       if (new URLSearchParams(window.location.search).get("room") !== joined.roomId) {
         window.history.replaceState(null, "", `?room=${joined.roomId}`);
       }
+      const handlers: Record<string, (m: never) => void> = {
+        "scenario:public": (m: ServerMessages["scenario:public"]) => setScenario(m),
+        "character:script": (m: Script) => setScript(m),
+        "chat:history": (m: ChatMessage[]) => setChat(m),
+        "chat:message": (m: ChatMessage) =>
+          setChat((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])),
+        "clue:acquired": (m: ServerMessages["clue:acquired"]) => {
+          const label = {
+            search: "새 단서를 얻었습니다",
+            auto: "새 단서가 도착했습니다",
+            public: "공통 자료가 공개되었습니다",
+            given: "단서를 건네받았습니다",
+          }[m.from];
+          toast({ tone: "clue", title: label, desc: `${m.clue.code} · ${m.clue.title}` });
+        },
+        error: (m: ServerMessages["error"]) => toast({ tone: "error", title: m.message }),
+      };
       joined.onStateChange((s: { toJSON(): GameSnapshot }) => setState(s.toJSON()));
-      joined.onMessage("scenario:public", (m: ServerMessages["scenario:public"]) => setScenario(m));
-      joined.onMessage("character:script", (m: Script) => setScript(m));
-      joined.onMessage("chat:history", (m: ChatMessage[]) => setChat(m));
-      joined.onMessage("chat:message", (m: ChatMessage) =>
-        setChat((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m])),
-      );
-      joined.onMessage("clue:acquired", (m: ServerMessages["clue:acquired"]) => {
-        const label = {
-          search: "새 단서를 얻었습니다",
-          auto: "새 단서가 도착했습니다",
-          public: "공통 자료가 공개되었습니다",
-          given: "단서를 건네받았습니다",
-        }[m.from];
-        toast({ tone: "clue", title: label, desc: `${m.clue.code} · ${m.clue.title}` });
-      });
-      joined.onMessage("error", (m: ServerMessages["error"]) =>
-        toast({ tone: "error", title: m.message }),
-      );
+      for (const [type, handler] of Object.entries(handlers)) joined.onMessage(type, handler);
       joined.onMessage("*", () => {});
+      // 다른 화면에서 넘겨받은 연결이면, 그동안 받은 상태와 메시지를 다시 적용한다
+      const state = (joined as Room<{ toJSON(): GameSnapshot }>).state;
+      if (state?.toJSON) setState(state.toJSON());
+      for (const [type, message] of buffered) handlers[type]?.(message as never);
       joined.onLeave((code: number) => {
         if (code > 1001) setError("연결이 끊겼습니다. 새로고침하면 다시 입장합니다.");
       });
@@ -83,13 +88,30 @@ export function useGame(scenarioVersionId: string, initialRoomId?: string) {
     [toast],
   );
 
-  useEffect(() => () => void roomRef.current?.leave(), []);
+  // 화면을 떠나면 방에서 나간다. 개발 모드의 effect 재실행(마운트→해제→마운트)에서는
+  // 넘겨받은 연결을 끊지 않도록 한 박자 늦게 확인한다
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      setTimeout(() => {
+        if (!mounted.current) void roomRef.current?.leave();
+      });
+    };
+  }, []);
 
+  // 사건 상세 화면에서 방을 만들고 넘어왔으면 그 연결을 그대로 쓴다.
   // 새로고침: 이 탭에 재접속 토큰이 있으면 먼저 그 자리로 돌아간다
   const triedReconnect = useRef(false);
   useEffect(() => {
     if (triedReconnect.current || !initialRoomId) return;
     triedReconnect.current = true;
+    const handed = takeHandedOffRoom(initialRoomId);
+    if (handed) {
+      attach(handed.room, handed.buffered);
+      return;
+    }
     let token: string | null = null;
     try {
       token = sessionStorage.getItem(tokenKey(initialRoomId));
