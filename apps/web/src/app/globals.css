@@ -9,3 +9,20 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+/* 종이 표면의 가는 괘선 (구김·얼룩 텍스처는 쓰지 않는다) */
+.nm-paper-lines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 27px,
+    color-mix(in oklch, var(--paper-rule) 35%, transparent) 27px 28px
+  );
+}
+.nm-note-lines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 27px,
+    color-mix(in oklch, var(--paper-rule) 70%, transparent) 27px 28px
+  );
+  background-attachment: local;
+}

@@ -11,7 +11,12 @@ let jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
 /** Supabase Auth가 발급한 access token을 검증한다 */
 export async function verifyToken(token: string): Promise<AuthUser> {
   if (config.devAuth && token.startsWith("dev:")) {
-    const nickname = token.slice(4) || "개발자";
+    // 헤더에는 ASCII만 실을 수 있어 클라이언트가 닉네임을 URI 인코딩해 보낸다
+    let nickname = token.slice(4);
+    try {
+      nickname = decodeURIComponent(nickname);
+    } catch {}
+    nickname ||= "개발자";
     return { userId: `dev-${nickname}`, nickname };
   }
   if (!token) throw new Error("로그인이 필요합니다");
