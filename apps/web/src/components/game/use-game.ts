@@ -81,8 +81,9 @@ export function useGame(scenarioVersionId: string, initialRoomId?: string) {
       for (const [type, handler] of Object.entries(handlers)) joined.onMessage(type, handler);
       joined.onMessage("*", () => {});
       // 다른 화면에서 넘겨받은 연결이면, 그동안 받은 상태와 메시지를 다시 적용한다
-      const state = (joined as Room<{ toJSON(): GameSnapshot }>).state;
-      if (state?.toJSON) setState(state.toJSON());
+      // 막 접속한 방은 첫 상태를 받기 전이라 빈 객체일 수 있으니, 이미 받은 경우에만 적용한다
+      const current = (joined as Room<{ toJSON(): Partial<GameSnapshot> }>).state?.toJSON?.();
+      if (current?.players) setState(current as GameSnapshot);
       for (const [type, message] of buffered) handlers[type]?.(message as never);
       joined.onLeave((code: number) => {
         if (code > 1001) setError("연결이 끊겼습니다. 새로고침하면 다시 입장합니다.");
