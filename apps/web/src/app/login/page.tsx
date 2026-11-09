@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { LoginForm } from "@/components/login-form";
+import { AuthCard } from "@/components/auth-card";
 import { safeNextPath } from "@/lib/safe-next-path";
 import { getCurrentUser } from "@/lib/supabase/server";
 
@@ -26,7 +26,7 @@ export default async function LoginPage({
             머더 미스터리
           </p>
         </header>
-        <LoginForm next={next} initialError={Boolean(error)} />
+        <AuthCard next={next} initialError={Boolean(error)} />
       </main>
     </div>
   );
