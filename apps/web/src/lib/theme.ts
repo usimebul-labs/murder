@@ -29,6 +29,26 @@ export type Theme = {
   featured?: boolean;
 };
 
+/** 상세 화면의 진행 순서 한 줄 */
+export type ThemePhase = {
+  kind: "prologue" | "investigation" | "discussion" | "statements" | "vote" | "ending";
+  name: string;
+  minutes: number;
+  /** 종류별 기본 설명 대신 쓸 설명 */
+  desc?: string;
+};
+
+/** 상세 화면(사건 개요 · 진행 순서 · 등장인물)에 쓰는 공개 정보. 비밀 문서나 정답은 넣지 않는다 */
+export type ThemeDetail = {
+  /** 사건 개요 문서. 장마다 제목·부제·문단 */
+  prologue: { title: string; subtitle: string; paras: string[] }[];
+  /** 개요 마지막 장 아래의 사건 기록 (VICTIM, LOCATION …) */
+  facts: { k: string; v: string }[];
+  phases: ThemePhase[];
+  /** 아직 인물이 정해지지 않은 데모 테마는 빈 배열 */
+  cast: { name: string; role: string; line: string; portrait?: string; colorIndex: number }[];
+};
+
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   easy: "하",
   normal: "중",

@@ -1,5 +1,5 @@
 import { blackwoodManor } from "@mm/scenario-schema";
-import type { Theme } from "./theme";
+import type { Theme, ThemeDetail, ThemePhase } from "./theme";
 
 /**
  * 로비에 보이는 테마(사건) 목록. 서버 컴포넌트에서만 import한다
@@ -194,6 +194,93 @@ export const THEMES: Theme[] = [
     coverPosition: "center 60%",
   },
 ];
+
+const PHASE_KIND: Record<string, ThemePhase["kind"]> = {
+  intro: "prologue",
+  "character-select": "prologue",
+  reading: "prologue",
+  investigation: "investigation",
+  discussion: "discussion",
+  "final-statements": "statements",
+  vote: "vote",
+  "objectives-review": "ending",
+  ending: "ending",
+};
+
+/** 같은 종류 안에서 구분이 필요한 페이즈의 설명 */
+const PHASE_DESC: Record<string, string> = {
+  intro: "사건 개요를 함께 읽으며 그날 밤의 무대로 들어갑니다.",
+  "character-select": "맡고 싶은 인물을 고릅니다. 겹치면 추첨으로 정해요.",
+  reading: "내 인물의 비밀 문서를 혼자 읽습니다. 다른 사람에게는 보이지 않아요.",
+  "objectives-review": "각자의 목표를 이루었는지 하나씩 확인하고 점수를 매깁니다.",
+};
+
+/** 블랙우드 프롤로그 각 장의 제목·부제 (본문은 시나리오에서 읽는다) */
+const BLACKWOOD_CHAPTERS = [
+  { title: "폭풍이 다가오는 생일 밤", subtitle: "1938. 10. 14 · 요크셔 황무지" },
+  { title: "건배사 뒤, 아무도 웃지 않았다", subtitle: "1938. 10. 14 · 만찬" },
+  { title: "다리가 끊긴 밤, 서재의 안락의자", subtitle: "1938. 10. 14 · 23:40" },
+];
+
+/** 시나리오의 공개 부분만으로 블랙우드 상세 정보를 만든다 (개인 대본·목표·범인 여부는 넣지 않는다) */
+function blackwoodDetail(): ThemeDetail {
+  const s = blackwoodManor;
+  return {
+    prologue: s.prologue.map((ch, i) => ({
+      title: BLACKWOOD_CHAPTERS[i]?.title ?? ch.title,
+      subtitle: BLACKWOOD_CHAPTERS[i]?.subtitle ?? "",
+      paras: ch.body.split(/\n+/).filter(Boolean),
+    })),
+    facts: [
+      { k: "VICTIM", v: `${s.victim?.name ?? "에드먼드 블랙우드"} · 68세` },
+      { k: "LOCATION", v: "서재" },
+      { k: "DISCOVERED", v: "~23:40" },
+      { k: "DISCOVERED BY", v: "하녀" },
+    ],
+    phases: s.phases.map((ph) => ({
+      kind: PHASE_KIND[ph.kind] ?? "prologue",
+      name: ph.title,
+      minutes: Math.max(1, Math.round((ph.durationSec ?? 0) / 60)),
+      desc: PHASE_DESC[ph.kind],
+    })),
+    cast: s.characters.map((c) => ({
+      name: c.name,
+      role: c.role ?? "",
+      line: c.tagline ?? "",
+      portrait: c.portraitKey ? `/${c.portraitKey}` : undefined,
+      colorIndex: c.colorIndex,
+    })),
+  };
+}
+
+/** 데모 테마의 기본 진행 순서. 예상 시간에 맞춰 비율대로 나눈다 */
+const DEMO_PHASES: [ThemePhase["kind"], string, number][] = [
+  ["prologue", "프롤로그 · 캐릭터 선택", 10],
+  ["investigation", "1차 탐색", 20],
+  ["discussion", "1차 토론", 15],
+  ["investigation", "2차 탐색", 15],
+  ["discussion", "2차 토론", 15],
+  ["vote", "범인 지목", 5],
+  ["ending", "결말 공개", 10],
+];
+
+function demoDetail(t: Theme): ThemeDetail {
+  const base = DEMO_PHASES.reduce((sum, [, , m]) => sum + m, 0);
+  return {
+    prologue: [{ title: t.hook, subtitle: `${t.year} · ${t.place}`, paras: [t.synopsis] }],
+    facts: [],
+    phases: DEMO_PHASES.map(([kind, name, m]) => ({
+      kind,
+      name,
+      minutes: Math.max(5, Math.round(((m / base) * t.estimatedMinutes) / 5) * 5),
+    })),
+    cast: [],
+  };
+}
+
+export function themeDetail(t: Theme): ThemeDetail {
+  return t.id === "blackwood-manor" ? blackwoodDetail() : demoDetail(t);
+}
 
 export function findTheme(id: string) {
   return THEMES.find((t) => t.id === id);
