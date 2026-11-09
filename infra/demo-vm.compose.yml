@@ -1,5 +1,5 @@
-# 비공개 데모용: Oracle Cloud Always Free VM 한 대에서 게임 서버 + Redis + Caddy(HTTPS)
-#   GAME_DOMAIN=game.example.duckdns.org docker compose -f infra/demo-vm.compose.yml up -d
+# 출시 단계용 (VM 한 대에서) 게임 서버 + Redis + Caddy(HTTPS)
+#   GAME_DOMAIN=game.example.com docker compose -f infra/demo-vm.compose.yml up -d
 services:
   game:
     build:
