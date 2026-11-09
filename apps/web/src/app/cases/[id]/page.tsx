@@ -21,5 +21,12 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
   const theme = findTheme((await params).id);
   if (!theme) notFound();
   const user = await getCurrentUser();
-  return <CaseDetail theme={theme} detail={themeDetail(theme)} signedIn={!!user} />;
+  return (
+    <CaseDetail
+      theme={theme}
+      detail={themeDetail(theme)}
+      signedIn={!!user}
+      needsLogin={!user && process.env.NEXT_PUBLIC_DEV_AUTH !== "1"}
+    />
+  );
 }
