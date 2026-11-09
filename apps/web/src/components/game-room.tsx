@@ -31,7 +31,8 @@ interface GameSnapshot {
       hasVoted: boolean;
     }
   >;
-  clues: Record<
+  /** view 필드라서 이 플레이어에게 보이는 단서가 생기기 전에는 없다 */
+  clues?: Record<
     string,
     { id: string; code: string; title: string; body: string; sharedBy: string }
   >;
@@ -102,6 +103,7 @@ export function GameRoom({
   }
 
   const me = state.players[room.sessionId];
+  const clues = Object.values(state.clues ?? {});
   const phase = state.phaseIndex >= 0 ? state.phases[state.phaseIndex] : undefined;
   const characterName = (id: string) => state.characters.find((c) => c.id === id)?.name ?? id;
 
@@ -190,10 +192,10 @@ export function GameRoom({
 
         <div className="space-y-2">
           <h2 className="font-serif text-lg font-bold">단서</h2>
-          {Object.values(state.clues).length === 0 && (
+          {clues.length === 0 && (
             <p className="text-sm text-muted-foreground">아직 얻은 단서가 없습니다</p>
           )}
-          {Object.values(state.clues).map((clue) => (
+          {clues.map((clue) => (
             <div
               key={clue.id}
               className="rounded-lg border border-[var(--clue-border)] bg-[var(--clue-surface)] p-3"
