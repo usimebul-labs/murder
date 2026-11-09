@@ -176,7 +176,7 @@ export function GameRoom({
           {phase?.kind === "investigation" && (
             <Button
               variant="secondary"
-              onClick={() => send("clue:investigate", { location: "서재" })}
+              onClick={() => send("clue:investigate", { location: "study" })}
             >
               서재 조사
             </Button>

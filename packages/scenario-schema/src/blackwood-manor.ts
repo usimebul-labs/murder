@@ -1,0 +1,1312 @@
+import type { ScenarioInput } from "./schema.js";
+
+/**
+ * 데모 시나리오 CASE 01 "블랙우드 저택의 마지막 만찬" (6인, 3라운드, 오리지널).
+ * 스키마의 모든 기능(라운드별 장소 개방, 조건부 해금, 자동 배포, 자동·판정단 목표, 결말 분기)을 한 번씩 쓴다.
+ */
+export const blackwoodManor = {
+  schemaVersion: 2,
+  id: "blackwood-manor",
+  meta: {
+    title: "블랙우드 저택의 마지막 만찬",
+    caseNumber: "01",
+    hook: "생일 만찬의 건배사 뒤, 아무도 웃지 않았다.",
+    synopsis:
+      "폭풍우로 다리가 끊긴 밤, 생일 만찬을 마친 저택의 주인이 서재에서 숨진 채 발견됩니다. 경찰이 오기 전까지, 여섯 사람은 서로를 의심해야 합니다.",
+    setting: {
+      year: 1938,
+      place: "요크셔",
+    },
+    minPlayers: 6,
+    maxPlayers: 6,
+    estimatedMinutes: 160,
+    difficulty: "normal",
+    tags: ["클래식", "저택", "독살", "초보 환영"],
+    contentWarnings: ["독살", "죽음"],
+  },
+  prologue: [
+    {
+      id: "p1",
+      title: "I",
+      body: "1938년 10월 14일, 요크셔 황무지. 블랙우드 직물의 창업주 에드먼드 블랙우드의 예순여덟 번째 생일. 폭풍이 다가오는 밤, 저택에 가족과 손님 여섯이 모였다.",
+    },
+    {
+      id: "p2",
+      title: "II",
+      body: "만찬의 건배사에서 에드먼드는 내일 아침 새 유언장에 서명하겠다고 말했다. 잔이 부딪히는 소리 뒤로 아무도 웃지 않았다.",
+    },
+    {
+      id: "p3",
+      title: "III",
+      body: "밤 11시 40분, 하녀의 비명. 서재 안락의자에서 에드먼드가 숨진 채 발견됐다. 강물이 불어 다리가 끊겼고, 경찰은 아침에야 온다. 그때까지, 범인은 이 집 안에 있다.",
+    },
+  ],
+  rules: [
+    "범인만 거짓말을 할 수 있습니다. 다른 인물은 말하지 않을 수는 있어도 거짓을 말하면 안 됩니다.",
+    "단서는 가진 사람만 내용을 봅니다. 토론에서 공개하거나 밀담에서 건넬 수 있고, 건네기는 되돌릴 수 없습니다.",
+    "점수: 주 목표 2점, 보조 목표 1점, 진범 지목 1점.",
+  ],
+  victim: {
+    name: "에드먼드 블랙우드",
+    description: "68세. 블랙우드 직물의 창업주. 심장병으로 매일 밤 디기탈리스를 소량 복용했다.",
+  },
+  locations: [
+    {
+      id: "study",
+      name: "서재",
+      description: "시신이 발견된 곳. 책상, 금고, 안락의자, 벽난로.",
+      map: {
+        x: 60,
+        y: 10,
+        w: 30,
+        h: 30,
+      },
+      openFromRound: 1,
+    },
+    {
+      id: "dining",
+      name: "식당",
+      description: "생일 만찬이 차려졌던 긴 식탁.",
+      map: {
+        x: 10,
+        y: 10,
+        w: 40,
+        h: 25,
+      },
+      openFromRound: 1,
+    },
+    {
+      id: "hall",
+      name: "현관 홀",
+      description: "외투걸이와 의자, 2층으로 오르는 계단.",
+      map: {
+        x: 35,
+        y: 45,
+        w: 25,
+        h: 20,
+      },
+      openFromRound: 1,
+    },
+    {
+      id: "drawing",
+      name: "응접실",
+      description: "만찬 뒤 손님들이 머문 방. 마거릿의 필기용 책상이 있다.",
+      map: {
+        x: 10,
+        y: 45,
+        w: 22,
+        h: 25,
+      },
+      openFromRound: 1,
+    },
+    {
+      id: "servants",
+      name: "주방·하인 구역",
+      description: "요리사 브라운 부인, 집사 그레이엄, 정원사 톰이 머무는 곳.",
+      map: {
+        x: 10,
+        y: 75,
+        w: 35,
+        h: 20,
+      },
+      openFromRound: 1,
+    },
+    {
+      id: "greenhouse",
+      name: "온실",
+      description: "서재 창 너머의 유리 온실. 화분이 빼곡하다.",
+      map: {
+        x: 65,
+        y: 45,
+        w: 25,
+        h: 22,
+      },
+      openFromRound: 2,
+    },
+    {
+      id: "guest-wing",
+      name: "손님 별관",
+      description: "변호사 빅터가 묵는 별채 객실.",
+      map: {
+        x: 55,
+        y: 75,
+        w: 35,
+        h: 20,
+      },
+      openFromRound: 3,
+    },
+  ],
+  characters: [
+    {
+      id: "henry",
+      name: "헨리 블랙우드",
+      role: "장남",
+      age: 41,
+      tagline: "후계자를 자처하는 장남",
+      publicProfile: "블랙우드 직물의 부사장. 아버지의 뒤를 이을 사람은 자신뿐이라고 믿는다.",
+      traits: ["다혈질", "사교적", "늘 돈이 모자라 보인다"],
+      script: {
+        identity:
+          "당신은 헨리 블랙우드, 에드먼드의 장남입니다. 회사 부사장이지만 실권은 아버지에게 있고, 당신은 그것이 늘 불만이었습니다. 지난 1년 동안 경마에 손을 댔다가 마권업자에게 3,000파운드를 빚졌고, 기한은 10월 31일입니다.",
+        relationships: [
+          {
+            characterId: "margaret",
+            text: "아버지의 두 번째 아내. 재산을 노리고 들어온 여자라고 생각한다.",
+          },
+          {
+            characterId: "arthur",
+            text: "의사가 된 동생. 아버지가 더 아끼는 쪽이라 질투가 난다.",
+          },
+          {
+            characterId: "eleanor",
+            text: "아버지의 비서. 요즘 아버지와 서재에 붙어 있는 시간이 수상하다.",
+          },
+          {
+            characterId: "victor",
+            text: "어릴 때부터 알던 가문 변호사. 빚 문제로 조언을 구해 볼까 생각했다.",
+          },
+          {
+            characterId: "clara",
+            text: "돈을 주고 아버지의 서류 내용을 알려 달라고 한 하녀.",
+          },
+        ],
+        timeline: [
+          {
+            time: "20:15",
+            text: "건배사에서 새 유언장 이야기를 듣는다.",
+            secret: false,
+          },
+          {
+            time: "20:40",
+            text: "응접실에서 클라라에게 5파운드를 주고 유언장 내용을 묻는다. 당신 몫이 크게 줄어든다는 말을 듣는다.",
+            secret: true,
+          },
+          {
+            time: "22:10",
+            text: "서재로 가 빚을 갚아 달라고 한다. 아버지는 창백하고 땀을 흘렸지만 화가 나서 그런 줄 알았다. 언성이 높아진다.",
+            secret: true,
+          },
+          {
+            time: "22:20",
+            text: '"차라리 죽어 버리시지!" 하고 문을 쾅 닫고 나와 2층 방으로 간다.',
+            secret: true,
+          },
+        ],
+        sealedTruth: {
+          text: "당신은 범인이 아닙니다. 하지만 빚, 아버지와의 말다툼, 클라라와의 거래가 드러나면 가장 먼저 의심받을 사람입니다.",
+          mustHide: ["3,000파운드 빚", "클라라에게 돈을 주고 유언장 내용을 들은 일"],
+          mayReveal: [
+            "22:10에 서재에 가서 아버지와 다툰 일",
+            "그때 아버지가 이미 창백하고 땀을 흘리고 있었다는 것",
+          ],
+        },
+      },
+      objectives: [
+        {
+          id: "main",
+          kind: "main",
+          text: "범인으로 지목되지 않는다.",
+          points: 2,
+          judge: {
+            kind: "auto",
+            condition: {
+              kind: "not",
+              condition: {
+                kind: "accused-is",
+                characterIds: ["henry"],
+              },
+            },
+          },
+        },
+        {
+          id: "sub",
+          kind: "sub",
+          text: "차용증(EV-13)이 끝까지 공개되지 않는다.",
+          points: 1,
+          judge: {
+            kind: "auto",
+            condition: {
+              kind: "not",
+              condition: {
+                kind: "clue-public",
+                clueId: "ev-13",
+              },
+            },
+          },
+        },
+      ],
+      isCulprit: false,
+      colorIndex: 1,
+    },
+    {
+      id: "margaret",
+      name: "마거릿 블랙우드",
+      role: "아내",
+      age: 46,
+      tagline: "저택의 안주인",
+      publicProfile: "에드먼드의 두 번째 아내. 8년 전 이 집에 들어왔다.",
+      traits: ["침착함", "우아함", "속을 알 수 없다"],
+      script: {
+        identity:
+          "당신은 마거릿 블랙우드입니다. 남편과의 결혼은 오래전에 식었고, 런던의 화가 줄리언과 편지를 주고받으며 이 집을 떠날 날을 준비해 왔습니다. 오늘 오후, 남편이 그 편지 한 통을 손에 넣고 서재 서랍에 넣어 잠갔습니다.",
+        relationships: [
+          {
+            characterId: "henry",
+            text: "당신을 적대하는 의붓아들. 돈 문제가 있다는 소문을 들었다.",
+          },
+          {
+            characterId: "arthur",
+            text: "예의 바른 의붓아들. 요즘 런던 이야기를 피한다.",
+          },
+          {
+            characterId: "eleanor",
+            text: "남편의 비서. 남편이 그녀에게 유난히 다정해 신경이 쓰인다.",
+          },
+          {
+            characterId: "victor",
+            text: "가문 변호사. 이혼하게 되면 상의해야 할 사람.",
+          },
+          {
+            characterId: "clara",
+            text: "하녀. 눈치가 빠르다.",
+          },
+        ],
+        timeline: [
+          {
+            time: "20:30",
+            text: "만찬 뒤 응접실에서 책을 읽는 척하며 서재가 비기를 기다린다.",
+            secret: false,
+          },
+          {
+            time: "22:40",
+            text: "서재에 몰래 들어가 서랍에서 편지를 되찾는다. 남편은 안락의자에 쓰러져 숨을 몰아쉬고 있었다. 취했다고 여기고, 깨우지 않고 나왔다.",
+            secret: true,
+          },
+          {
+            time: "22:45",
+            text: "응접실 책상에 편지를 숨기고 침실로 올라간다.",
+            secret: true,
+          },
+        ],
+        sealedTruth: {
+          text: "당신은 범인이 아닙니다. 그러나 22:40에 남편이 위독한 상태였을지도 모르는데 사람을 부르지 않았습니다. 그 사실이, 그리고 줄리언과의 편지가 알려지는 것이 두렵습니다.",
+          mustHide: ["22:40에 서재에 들어간 일", "쓰러진 남편을 두고 나온 일"],
+          mayReveal: ["남편과 사이가 좋지 않았다는 것", "오후에 편지를 빼앗겼다는 것"],
+        },
+      },
+      objectives: [
+        {
+          id: "main",
+          kind: "main",
+          text: "게임이 끝날 때 줄리언의 편지 묶음(EV-22)을 당신이 가지고 있다.",
+          points: 2,
+          judge: {
+            kind: "auto",
+            condition: {
+              kind: "clue-held-by",
+              clueId: "ev-22",
+              by: "self",
+            },
+          },
+        },
+        {
+          id: "sub",
+          kind: "sub",
+          text: "쓰러진 남편을 두고 나왔다는 사실을 끝까지 들키지 않는다.",
+          points: 1,
+          judge: {
+            kind: "jury",
+            prompt:
+              "마거릿이 22:40에 쓰러진 에드먼드를 보고도 두고 나왔다는 사실이 토론 중에 드러났습니까?",
+          },
+        },
+      ],
+      isCulprit: false,
+      colorIndex: 2,
+    },
+    {
+      id: "arthur",
+      name: "아서 블랙우드",
+      role: "차남·의사",
+      age: 34,
+      tagline: "아버지의 주치의인 차남",
+      publicProfile: "런던에서 일하는 의사. 아버지의 심장병을 직접 돌본다.",
+      traits: ["신중함", "다정함", "요즘 부쩍 지쳐 보인다"],
+      script: {
+        identity:
+          "당신은 아서 블랙우드, 의사이자 아버지의 주치의입니다. 아버지에게 매일 밤 디기탈리스 10방울을 처방해 왔습니다. 누구에게도 말하지 않았지만, 석 달 전 런던 병원에서 처방 사고를 내 정직 중입니다.",
+        relationships: [
+          {
+            characterId: "henry",
+            text: "형. 돈 문제로 아버지와 자주 다툰다.",
+          },
+          {
+            characterId: "margaret",
+            text: "계모. 아버지와 사이가 식은 것을 안다.",
+          },
+          {
+            characterId: "eleanor",
+            text: "아버지의 비서. 친절하고 성실하다.",
+          },
+          {
+            characterId: "victor",
+            text: "가문 변호사. 정직 문제를 털어놓고 조언을 구할까 고민 중이다.",
+          },
+          {
+            characterId: "clara",
+            text: "하녀. 아버지의 저녁 약을 나른다.",
+          },
+        ],
+        timeline: [
+          {
+            time: "20:30",
+            text: "밤에 아버지를 진찰하려고 왕진 가방을 현관 홀 외투걸이 옆 의자에 둔다.",
+            secret: false,
+          },
+          {
+            time: "22:50",
+            text: "가방을 챙기다 디기탈리스 병이 거의 비어 있는 것을 발견한다. 또 자기 실수로 몰릴까 두려워 온실 화분에 병을 숨긴다.",
+            secret: true,
+          },
+          {
+            time: "23:00",
+            text: "서재 문을 두드렸지만 대답이 없어 주무시는 줄 알고 돌아간다.",
+            secret: true,
+          },
+          {
+            time: "23:45",
+            text: "비명을 듣고 달려가 사망을 확인한다.",
+            secret: false,
+          },
+        ],
+        sealedTruth: {
+          text: "당신은 범인이 아닙니다. 시신의 증상은 디기탈리스 중독처럼 보입니다. 당신의 약, 당신의 가방, 그리고 정직 사실이 모두 당신을 가리킵니다.",
+          mustHide: ["런던 병원 정직", "온실에 병을 숨긴 일"],
+          mayReveal: [
+            "아버지가 매일 디기탈리스 10방울을 드셨다는 것",
+            "가방을 현관 홀에 두었다는 것",
+            "의사로서의 소견",
+          ],
+        },
+      },
+      objectives: [
+        {
+          id: "main",
+          kind: "main",
+          text: "범인으로 지목되지 않는다.",
+          points: 2,
+          judge: {
+            kind: "auto",
+            condition: {
+              kind: "not",
+              condition: {
+                kind: "accused-is",
+                characterIds: ["arthur"],
+              },
+            },
+          },
+        },
+        {
+          id: "sub",
+          kind: "sub",
+          text: "온실의 병(EV-18)을 당신이 직접 손에 넣는다.",
+          points: 1,
+          judge: {
+            kind: "auto",
+            condition: {
+              kind: "clue-collected",
+              clueId: "ev-18",
+              by: "self",
+            },
+          },
+        },
+      ],
+      isCulprit: false,
+      colorIndex: 3,
+    },
+    {
+      id: "eleanor",
+      name: "엘리너 그레이",
+      role: "비서",
+      age: 27,
+      tagline: "말수 적은 개인 비서",
+      publicProfile: "2년 전 이 집에 들어온 에드먼드의 개인 비서.",
+      traits: ["꼼꼼함", "조용함", "에드먼드를 깊이 존경한다"],
+      script: {
+        identity:
+          "당신은 엘리너 그레이입니다. 돌아가신 어머니의 편지로 에드먼드가 당신의 아버지라는 것을 알고, 그 곁에 있으려고 비서로 들어왔습니다. 한 달 전 에드먼드도 그 사실을 알게 되었습니다.",
+        relationships: [
+          {
+            characterId: "henry",
+            text: "당신을 하인처럼 대한다. 사실은 이복오빠.",
+          },
+          {
+            characterId: "margaret",
+            text: "당신을 경계하는 안주인.",
+          },
+          {
+            characterId: "arthur",
+            text: "당신에게 늘 친절한 사람. 사실은 이복오빠.",
+          },
+          {
+            characterId: "victor",
+            text: "신탁 서류 일로 자주 마주치는 변호사. 장부 이야기에 예민하게 군다.",
+          },
+          {
+            characterId: "clara",
+            text: "또래 하녀. 가끔 서재 주변을 서성인다.",
+          },
+        ],
+        timeline: [
+          {
+            time: "21:00",
+            text: "서재에서 새 유언장 메모를 받아 적는다. 클라라가 브랜디와 약을 두고 나간다.",
+            secret: false,
+          },
+          {
+            time: "21:35",
+            text: "에드먼드가 내일 당신을 딸로 인정하겠다고 말한다. 서재를 나와 온실에서 울며 어머니의 편지를 다시 읽는다.",
+            secret: true,
+          },
+          {
+            time: "22:30",
+            text: "손수건과 편지를 온실에 두고 온 줄 모른 채 방으로 돌아간다.",
+            secret: false,
+          },
+        ],
+        sealedTruth: {
+          text: "당신은 범인이 아닙니다. 새 유언장으로 재산의 3분의 1을 받게 될 사람이 당신이라는 것이 알려지면 동기를 의심받겠지만, 당신이 서재를 나올 때 그는 아직 잔을 따르지 않았습니다.",
+          mustHide: [],
+          mayReveal: [
+            "에드먼드의 딸이라는 것 (언제 밝힐지는 당신이 정합니다)",
+            "유언장 메모의 내용",
+            "신탁 관리인이 바뀐다는 것",
+          ],
+        },
+      },
+      objectives: [
+        {
+          id: "main",
+          kind: "main",
+          text: "아버지를 죽인 사람에게 투표한다.",
+          points: 2,
+          judge: {
+            kind: "auto",
+            condition: {
+              kind: "voted-for",
+              characterIds: ["victor"],
+              by: "self",
+            },
+          },
+        },
+        {
+          id: "sub",
+          kind: "sub",
+          text: "새 유언장 메모(EV-17)를 모두에게 공개해 아버지의 뜻을 알린다.",
+          points: 1,
+          judge: {
+            kind: "auto",
+            condition: {
+              kind: "clue-public",
+              clueId: "ev-17",
+            },
+          },
+        },
+      ],
+      isCulprit: false,
+      colorIndex: 4,
+    },
+    {
+      id: "victor",
+      name: "빅터 헤일",
+      role: "변호사",
+      age: 52,
+      tagline: "삼촌 같은 가문 변호사",
+      publicProfile: "블랙우드 가문의 오랜 변호사이자 유산 신탁 관리인.",
+      traits: ["온화함", "말이 정확함", "모두가 믿는 사람"],
+      script: {
+        identity:
+          "당신은 빅터 헤일입니다. 1932년부터 5년 동안 신탁 자금 4,200파운드를 조금씩 빼돌렸습니다. 내일 신탁이 런던의 하트 앤 코에 넘어가 감사를 받으면 모든 것이 끝납니다.",
+        relationships: [
+          {
+            characterId: "henry",
+            text: "빚에 쫓기는 장남. 의심을 돌리기 좋은 상대.",
+          },
+          {
+            characterId: "margaret",
+            text: "남편과 사이가 나쁜 아내.",
+          },
+          {
+            characterId: "arthur",
+            text: "아버지의 주치의. 그의 약이 당신의 도구가 되었다.",
+          },
+          {
+            characterId: "eleanor",
+            text: "장부를 만지는 비서. 차액을 눈치챘을지 모른다.",
+          },
+          {
+            characterId: "clara",
+            text: "하녀. 현관 홀에서 마주쳤던가?",
+          },
+        ],
+        timeline: [
+          {
+            time: "21:30",
+            text: "현관 홀에서 아서의 가방을 열어 디기탈리스 병을 주머니에 넣는다. 서두르다 코르크 마개를 떨어뜨린다.",
+            secret: true,
+          },
+          {
+            time: "21:45",
+            text: "서재 방문. 에드먼드가 차액 메모를 내밀며 해명하라고 한다. 그가 금고로 돌아선 사이 병의 절반을 책상 위 잔에 붓는다.",
+            secret: true,
+          },
+          {
+            time: "21:50",
+            text: "클라라가 다기를 치우러 들어온다. 당신은 창가에 서 있었다.",
+            secret: false,
+          },
+          {
+            time: "22:00",
+            text: "별관 방으로 돌아가 메모를 가방에 넣고, 병을 닦은 손수건을 벽난로에 던진다.",
+            secret: true,
+          },
+          {
+            time: "22:05",
+            text: "거의 빈 병을 아서의 가방에 도로 넣어 둔다.",
+            secret: true,
+          },
+        ],
+        sealedTruth: {
+          text: "당신이 범인입니다. 당신만 거짓말을 할 수 있습니다. 심장 발작이나 아서의 투약 실수로 보이게 하는 것이 계획이었습니다.",
+          mustHide: ["현관 홀에서 병을 꺼낸 일", "잔에 약을 부은 일", "신탁 자금 횡령"],
+          mayReveal: ["21:45에 유언장 일로 서재에 갔다는 것 (일정 수첩에 남아 있습니다)"],
+        },
+      },
+      objectives: [
+        {
+          id: "main",
+          kind: "main",
+          text: "범인으로 지목되지 않는다.",
+          points: 2,
+          judge: {
+            kind: "auto",
+            condition: {
+              kind: "not",
+              condition: {
+                kind: "accused-is",
+                characterIds: ["victor"],
+              },
+            },
+          },
+        },
+        {
+          id: "sub",
+          kind: "sub",
+          text: "장부 차액 메모(EV-20)가 끝까지 공개되지 않는다.",
+          points: 1,
+          judge: {
+            kind: "auto",
+            condition: {
+              kind: "not",
+              condition: {
+                kind: "clue-public",
+                clueId: "ev-20",
+              },
+            },
+          },
+        },
+      ],
+      isCulprit: true,
+      colorIndex: 5,
+    },
+    {
+      id: "clara",
+      name: "클라라 모스",
+      role: "하녀",
+      age: 22,
+      tagline: "밤마다 서재에 술을 나르는 하녀",
+      publicProfile: "저택에서 3년째 일하는 하녀. 주인의 저녁 술과 약을 맡는다.",
+      traits: ["눈치가 빠름", "겁이 많음", "아픈 어머니가 있다"],
+      script: {
+        identity:
+          "당신은 클라라 모스입니다. 아픈 어머니의 약값 때문에 헨리에게 돈을 받고 주인의 편지와 서류 내용을 알려 주었습니다. 오늘 밤 시신을 처음 발견한 사람도 당신입니다.",
+        relationships: [
+          {
+            characterId: "henry",
+            text: "돈을 주는 사람. 들키면 둘 다 끝이다.",
+          },
+          {
+            characterId: "margaret",
+            text: "마님. 오후에 주인님과 편지 일로 다투는 소리를 들었다.",
+          },
+          {
+            characterId: "arthur",
+            text: "주인님의 약을 정해 준 의사 도련님.",
+          },
+          {
+            characterId: "eleanor",
+            text: "비서 아가씨. 오늘 밤 울고 있었다.",
+          },
+          {
+            characterId: "victor",
+            text: "점잖은 변호사님. 현관 홀에서 작은 병을 주머니에 넣는 것을 봤다.",
+          },
+        ],
+        timeline: [
+          {
+            time: "20:40",
+            text: "응접실에서 헨리에게 5파운드를 받고 유언장 이야기를 해 준다.",
+            secret: true,
+          },
+          {
+            time: "21:00",
+            text: "서재에 브랜디 디캔터와 약(10방울을 탄 물)을 둔다.",
+            secret: false,
+          },
+          {
+            time: "21:30",
+            text: "복도 끝에서 빅터가 현관 홀 의자 위 가방에서 갈색 작은 병을 꺼내 주머니에 넣는 것을 본다. 변호사님 약인 줄 알았다.",
+            secret: false,
+          },
+          {
+            time: "21:50",
+            text: '다기를 치우러 서재에 들어간다. 주인님이 잔을 마시며 "오늘은 술이 쓰군" 하셨다. 빅터는 창가에 있었다.',
+            secret: false,
+          },
+          {
+            time: "23:40",
+            text: "쟁반을 거두러 갔다가 주인님이 숨진 것을 발견한다.",
+            secret: false,
+          },
+        ],
+        sealedTruth: {
+          text: "당신은 범인이 아닙니다. 당신이 본 것은 중요할지 모르지만, 서재 주변에 있던 이유를 설명하다 보면 헨리와의 거래가 드러날 수 있습니다.",
+          mustHide: ["헨리에게 돈을 받고 서류 내용을 알려 준 일"],
+          mayReveal: ["21:30 현관 홀에서 본 것", "21:50 서재에서 들은 말", "술과 약을 나른 일"],
+        },
+      },
+      objectives: [
+        {
+          id: "main",
+          kind: "main",
+          text: "주인님을 죽인 사람에게 투표한다.",
+          points: 2,
+          judge: {
+            kind: "auto",
+            condition: {
+              kind: "voted-for",
+              characterIds: ["victor"],
+              by: "self",
+            },
+          },
+        },
+        {
+          id: "sub",
+          kind: "sub",
+          text: "헨리에게 돈을 받은 일(EV-14)이 끝까지 공개되지 않는다.",
+          points: 1,
+          judge: {
+            kind: "auto",
+            condition: {
+              kind: "not",
+              condition: {
+                kind: "clue-public",
+                clueId: "ev-14",
+              },
+            },
+          },
+        },
+      ],
+      isCulprit: false,
+      colorIndex: 6,
+    },
+  ],
+  clues: [
+    {
+      id: "ev-p1",
+      code: "EV-P1",
+      title: "시신의 상태",
+      category: "physical",
+      source: "공통 자료",
+      body: "서재 안락의자. 입가와 셔츠에 구토 흔적, 손에는 만년필. 외상은 없다. 책상 위에 빈 브랜디 잔과 디캔터.",
+      distribution: "public",
+      unlock: {
+        fromRound: 1,
+      },
+    },
+    {
+      id: "ev-01",
+      code: "EV-01",
+      title: "책상 위 브랜디 잔",
+      category: "physical",
+      source: "서재",
+      body: "바닥에 탁한 갈색 찌꺼기가 남아 있다. 쓴 풀 냄새가 난다. 디캔터의 술보다 색이 확연히 탁하다.",
+      distribution: "search",
+      locationId: "study",
+      unlock: {
+        fromRound: 1,
+      },
+      isKey: true,
+    },
+    {
+      id: "ev-02",
+      code: "EV-02",
+      title: "브랜디 디캔터",
+      category: "physical",
+      source: "서재",
+      body: "3분의 2가 남아 있다. 색도 냄새도 평소와 같다. 하인들 말로는 주인님은 늘 21:40쯤 첫 잔을 따라 두고 식혀 드신다.",
+      distribution: "search",
+      locationId: "study",
+      unlock: {
+        fromRound: 1,
+      },
+      isKey: true,
+    },
+    {
+      id: "ev-03",
+      code: "EV-03",
+      title: "에드먼드의 일정 수첩",
+      category: "document",
+      source: "서재",
+      body: '10월 14일: "21:00 E. 유언장 메모 / 21:45 V. — 마지막 기회 / 23:00 아서 진찰"',
+      distribution: "search",
+      locationId: "study",
+      unlock: {
+        fromRound: 1,
+      },
+      isKey: true,
+    },
+    {
+      id: "ev-04",
+      code: "EV-04",
+      title: "카펫 위 커프스 단추",
+      category: "physical",
+      source: "서재",
+      body: "은 커프스 단추 한 짝. 'H.B.' 이니셜이 새겨져 있다.",
+      distribution: "search",
+      locationId: "study",
+      unlock: {
+        fromRound: 1,
+      },
+    },
+    {
+      id: "ev-05",
+      code: "EV-05",
+      title: "건배사 초안",
+      category: "document",
+      source: "식당",
+      body: '에드먼드의 필체. "내일 아침 10시 새 유언장에 서명한다. 신탁은 런던 하트 앤 코에 넘기고 지난 장부를 모두 감사받는다. 그리고 이 집에 새 가족을 소개하겠다."',
+      distribution: "search",
+      locationId: "dining",
+      unlock: {
+        fromRound: 1,
+      },
+    },
+    {
+      id: "ev-06",
+      code: "EV-06",
+      title: "아서의 왕진 가방",
+      category: "physical",
+      source: "현관 홀",
+      body: "외투걸이 옆 의자 위. 잠금장치가 없다. 청진기와 진정제가 있고, 약병을 꽂는 칸 하나가 비어 있다. 'Dr. A. Blackwood' 이름표.",
+      distribution: "search",
+      locationId: "hall",
+      unlock: {
+        fromRound: 1,
+      },
+    },
+    {
+      id: "ev-07",
+      code: "EV-07",
+      title: "요리사 브라운 부인의 증언",
+      category: "testimony",
+      source: "주방",
+      body: '"클라라가 9시에 약 컵이랑 디캔터를 가져갔어요. 약은 아서 도련님이 정해 준 대로 10방울, 제가 옆에서 봤어요. 디캔터도 제가 채웠고요."',
+      distribution: "search",
+      locationId: "servants",
+      unlock: {
+        fromRound: 1,
+      },
+    },
+    {
+      id: "ev-08",
+      code: "EV-08",
+      title: "응접실의 소문",
+      category: "hearsay",
+      source: "응접실",
+      body: '"마님이 런던에서 오는 편지를 몰래 받으신대요. 오늘 오후 주인님이 그 편지를 빼앗으셨다던데."',
+      distribution: "search",
+      locationId: "drawing",
+      unlock: {
+        fromRound: 1,
+      },
+    },
+    {
+      id: "ev-09",
+      code: "EV-09",
+      title: "일기의 마지막 장",
+      category: "document",
+      source: "서재",
+      body: '흔들리는 글씨. "22:25 — 헨리에게 또 소리쳤다. 속이 뒤집히고 눈앞이 노랗게 번진다. 아서를 불러야겠다."',
+      distribution: "search",
+      locationId: "study",
+      unlock: {
+        fromRound: 2,
+        when: {
+          kind: "clue-collected",
+          clueId: "ev-03",
+        },
+      },
+      isKey: true,
+    },
+    {
+      id: "ev-10",
+      code: "EV-10",
+      title: "아서의 소견: 노란 시야",
+      category: "testimony",
+      source: "아서의 진찰",
+      body: "노랗게 번지는 시야와 구토는 디기탈리스 중독의 전형적인 증상이다. 정량 10방울로는 이럴 수 없다. 적어도 그 열 배는 들어갔다.",
+      distribution: "auto",
+      visibility: {
+        kind: "characters",
+        characterIds: ["arthur"],
+      },
+      unlock: {
+        fromRound: 2,
+        when: {
+          kind: "clue-public",
+          clueId: "ev-09",
+        },
+      },
+      isKey: true,
+    },
+    {
+      id: "ev-11",
+      code: "EV-11",
+      title: "외투걸이 아래 코르크 마개",
+      category: "physical",
+      source: "현관 홀",
+      body: "갈색으로 얼룩진 작은 코르크 마개. 붙어 있는 라벨 조각에 'Tinct. Digit…'라고 적혀 있다.",
+      distribution: "search",
+      locationId: "hall",
+      unlock: {
+        fromRound: 2,
+      },
+      isKey: true,
+    },
+    {
+      id: "ev-12",
+      code: "EV-12",
+      title: "정원사 톰의 증언",
+      category: "testimony",
+      source: "하인 구역",
+      body: '"11시 조금 전에 온실에 불이 켜져 있었어요. 아서 도련님이 화분 사이에서 뭘 하고 계시더군요."',
+      distribution: "search",
+      locationId: "servants",
+      unlock: {
+        fromRound: 2,
+      },
+    },
+    {
+      id: "ev-13",
+      code: "EV-13",
+      title: "헨리의 차용증",
+      category: "document",
+      source: "응접실",
+      body: '요크 마권업자 앞. "금 3,000파운드, 10월 31일까지 상환. — H. 블랙우드"',
+      distribution: "search",
+      locationId: "drawing",
+      unlock: {
+        fromRound: 2,
+      },
+    },
+    {
+      id: "ev-14",
+      code: "EV-14",
+      title: "하녀와 장남",
+      category: "hearsay",
+      source: "응접실",
+      body: '"만찬 끝나고 클라라가 헨리 도련님한테 돈을 받는 걸 봤어요. 한두 번이 아니라던데."',
+      distribution: "search",
+      locationId: "drawing",
+      unlock: {
+        fromRound: 2,
+      },
+    },
+    {
+      id: "ev-15",
+      code: "EV-15",
+      title: "집사 그레이엄의 증언",
+      category: "testimony",
+      source: "식당",
+      body: "\"9시 50분쯤 클라라가 서재에서 나올 때 안에서 빅터 씨 목소리가 들렸습니다. 10시 10분엔 헨리 도련님이 고함을 지르셨고, 10시 20분쯤 '차라리 죽어 버리시지!' 하고 문을 닫고 나가셨지요.\"",
+      distribution: "search",
+      locationId: "dining",
+      unlock: {
+        fromRound: 2,
+      },
+      isKey: true,
+    },
+    {
+      id: "ev-16",
+      code: "EV-16",
+      title: "온실의 젖은 편지",
+      category: "document",
+      source: "온실",
+      body: "눈물에 번진 오래된 편지와 'E.G.' 수가 놓인 손수건. \"엘리너, 네 아버지는 에드먼드 블랙우드란다. 원망하지 말아라. — 엄마가\"",
+      distribution: "search",
+      locationId: "greenhouse",
+      unlock: {
+        fromRound: 2,
+      },
+    },
+    {
+      id: "ev-17",
+      code: "EV-17",
+      title: "새 유언장 메모",
+      category: "document",
+      source: "서재",
+      body: "엘리너의 필체로 받아 적은 메모. 재산을 헨리·아서·엘리너에게 3분의 1씩. 마거릿에게는 연금만. 신탁 관리인을 빅터 헤일에서 하트 앤 코로 교체.",
+      distribution: "search",
+      locationId: "study",
+      unlock: {
+        fromRound: 2,
+      },
+    },
+    {
+      id: "ev-18",
+      code: "EV-18",
+      title: "화분 속 갈색 병",
+      category: "physical",
+      source: "온실",
+      body: "흙에 반쯤 묻힌 작은 갈색 병. 'Tinct. Digitalis — Dr. A. Blackwood'. 마개가 없고 거의 비었다.",
+      distribution: "search",
+      locationId: "greenhouse",
+      unlock: {
+        fromRound: 3,
+        when: {
+          kind: "clue-collected",
+          clueId: "ev-12",
+        },
+      },
+      isKey: true,
+    },
+    {
+      id: "ev-19",
+      code: "EV-19",
+      title: "벽난로의 덜 탄 손수건",
+      category: "physical",
+      source: "손님 별관",
+      body: "'V.H.' 자수가 남은 손수건. 갈색 얼룩이 배어 있고, 브랜디 잔과 같은 쓴 풀 냄새가 난다.",
+      distribution: "search",
+      locationId: "guest-wing",
+      unlock: {
+        fromRound: 3,
+      },
+      isKey: true,
+    },
+    {
+      id: "ev-20",
+      code: "EV-20",
+      title: "빅터 가방 속 메모",
+      category: "document",
+      source: "손님 별관",
+      body: '에드먼드의 필체. "신탁 계좌 1932~37 차액 £4,200. 하트 앤 코에 넘기기 전 내일 아침까지 해명할 것. — E.B."',
+      distribution: "search",
+      locationId: "guest-wing",
+      unlock: {
+        fromRound: 3,
+      },
+      isKey: true,
+    },
+    {
+      id: "ev-21",
+      code: "EV-21",
+      title: "열린 금고와 신탁 장부",
+      category: "document",
+      source: "서재",
+      body: "금고 문이 반쯤 열려 있다. 신탁 장부의 1932~37년 쪽마다 빨간 연필로 표시가 되어 있다. 관리인 서명은 모두 V. 헤일.",
+      distribution: "search",
+      locationId: "study",
+      unlock: {
+        fromRound: 3,
+      },
+      isKey: true,
+    },
+    {
+      id: "ev-22",
+      code: "EV-22",
+      title: "응접실 책상의 편지 묶음",
+      category: "document",
+      source: "응접실",
+      body: '마거릿이 줄리언에게 받은 편지 묶음과 서재 서랍 열쇠. 맨 위 편지: "다음 달이면 당신은 자유예요." 오늘 오후 압수된 바로 그 편지다.',
+      distribution: "search",
+      locationId: "drawing",
+      unlock: {
+        fromRound: 3,
+      },
+    },
+    {
+      id: "ev-23",
+      code: "EV-23",
+      title: "아서의 의학 수첩",
+      category: "document",
+      source: "현관 홀",
+      body: '가방 안주머니의 수첩. "디기탈리스 과량 복용: 30분~2시간 뒤 구토, 노란 시야, 부정맥. 1~3시간 안에 사망 가능."',
+      distribution: "search",
+      locationId: "hall",
+      unlock: {
+        fromRound: 3,
+      },
+      isKey: true,
+    },
+  ],
+  phases: [
+    {
+      id: "opening",
+      kind: "intro",
+      title: "오프닝",
+      titleCard: "PROLOGUE",
+      durationSec: 120,
+      endEarlyWhenAllDone: true,
+    },
+    {
+      id: "select",
+      kind: "character-select",
+      title: "캐릭터 선택",
+      titleCard: "WHO ARE YOU",
+      durationSec: 300,
+      mode: "preference-draw",
+    },
+    {
+      id: "reading",
+      kind: "reading",
+      title: "비밀 문서",
+      titleCard: "SECRET DOSSIER",
+      durationSec: 900,
+      endEarlyWhenAllDone: true,
+    },
+    {
+      id: "explore-1",
+      kind: "investigation",
+      title: "1차 탐색",
+      titleCard: "ROUND 01 · EXPLORE",
+      durationSec: 600,
+      endEarlyWhenAllDone: true,
+      round: 1,
+      pointsPerPlayer: 1,
+      turnOrder: "seat-rotating",
+    },
+    {
+      id: "discuss-1",
+      kind: "discussion",
+      title: "1차 토론",
+      titleCard: "ROUND 01 · DISCUSSION",
+      durationSec: 1200,
+      round: 1,
+    },
+    {
+      id: "explore-2",
+      kind: "investigation",
+      title: "2차 탐색",
+      titleCard: "ROUND 02 · EXPLORE",
+      durationSec: 600,
+      endEarlyWhenAllDone: true,
+      round: 2,
+      pointsPerPlayer: 1,
+      turnOrder: "seat-rotating",
+    },
+    {
+      id: "discuss-2",
+      kind: "discussion",
+      title: "2차 토론",
+      titleCard: "ROUND 02 · DISCUSSION",
+      durationSec: 1200,
+      round: 2,
+      allowWhisper: true,
+      whisper: {
+        maxParticipants: 3,
+        maxDurationSec: 180,
+        maxPerPlayer: 1,
+      },
+    },
+    {
+      id: "explore-3",
+      kind: "investigation",
+      title: "3차 탐색",
+      titleCard: "ROUND 03 · EXPLORE",
+      durationSec: 600,
+      endEarlyWhenAllDone: true,
+      round: 3,
+      pointsPerPlayer: 2,
+      turnOrder: "seat-rotating",
+    },
+    {
+      id: "discuss-3",
+      kind: "discussion",
+      title: "3차 토론",
+      titleCard: "ROUND 03 · FINAL DISCUSS",
+      durationSec: 1500,
+      round: 3,
+      allowWhisper: true,
+      whisper: {
+        maxParticipants: 3,
+        maxDurationSec: 180,
+        maxPerPlayer: 1,
+      },
+    },
+    {
+      id: "statements",
+      kind: "final-statements",
+      title: "최후 진술",
+      titleCard: "FINAL STATEMENTS",
+      durationSec: 720,
+      perPlayerSec: 120,
+      order: "seat",
+      maxPinnedClues: 3,
+    },
+    {
+      id: "vote",
+      kind: "vote",
+      title: "범인 지목",
+      titleCard: "FINAL VOTE",
+      durationSec: 180,
+      allowSelfVote: true,
+      runoffSec: 120,
+      voiceEnabled: false,
+    },
+    {
+      id: "objectives",
+      kind: "objectives-review",
+      title: "목표 결산",
+      titleCard: "OBJECTIVES",
+      durationSec: 480,
+      revealIntervalSec: 3,
+    },
+    {
+      id: "ending",
+      kind: "ending",
+      title: "결말",
+      titleCard: "ENDING",
+      durationSec: 600,
+      mvpVote: true,
+    },
+  ],
+  scoring: {
+    culpritVotePoints: 1,
+  },
+  solution: {
+    motive:
+      "1932~37년 신탁 자금 4,200파운드 횡령. 다음 날 신탁이 하트 앤 코로 넘어가 감사를 받으면 드러날 처지였다.",
+    method:
+      "21:30 현관 홀의 아서 가방에서 디기탈리스 팅크를 꺼내, 21:45 서재에서 에드먼드가 금고로 돌아선 사이 미리 따라 둔 브랜디 잔에 부었다. 매일 먹는 약이라 심장 발작이나 아서의 투약 실수로 보일 것이라 계산했다.",
+    timeline: [
+      {
+        locationId: "dining",
+        time: "20:15",
+        text: "건배사에서 새 유언장과 신탁 감사를 예고한다.",
+        clueIds: ["ev-05"],
+      },
+      {
+        locationId: "hall",
+        time: "20:30",
+        text: "아서가 왕진 가방을 현관 홀에 둔다.",
+        clueIds: ["ev-06"],
+      },
+      {
+        locationId: "study",
+        time: "21:00",
+        text: "클라라가 브랜디와 정량의 약을 두고, 엘리너가 유언장 메모를 받아 적는다.",
+        clueIds: ["ev-07", "ev-17"],
+      },
+      {
+        locationId: "hall",
+        time: "21:30",
+        text: "빅터가 가방에서 디기탈리스 병을 꺼내다 마개를 떨어뜨린다. 클라라가 본다.",
+        clueIds: ["ev-11"],
+      },
+      {
+        locationId: "study",
+        time: "21:40",
+        text: "에드먼드가 첫 잔을 따라 둔다.",
+        clueIds: ["ev-02"],
+      },
+      {
+        locationId: "study",
+        time: "21:45",
+        text: "빅터가 차액 메모를 받고, 에드먼드가 금고로 돌아선 사이 잔에 약을 붓는다.",
+        clueIds: ["ev-01", "ev-03", "ev-21"],
+      },
+      {
+        locationId: "study",
+        time: "21:50",
+        text: '에드먼드가 "오늘은 술이 쓰군" 하며 잔을 비운다.',
+        clueIds: ["ev-15"],
+      },
+      {
+        locationId: "guest-wing",
+        time: "22:00",
+        text: "빅터가 메모를 숨기고 손수건을 태우려 한다.",
+        clueIds: ["ev-19", "ev-20"],
+      },
+      {
+        locationId: "study",
+        time: "22:10",
+        text: "헨리가 빚 문제로 다투고 22:20에 나간다.",
+        clueIds: ["ev-04", "ev-13"],
+      },
+      {
+        locationId: "study",
+        time: "22:25",
+        text: "구토와 노란 시야. 독을 마신 지 35분.",
+        clueIds: ["ev-09", "ev-10", "ev-23"],
+      },
+      {
+        locationId: "study",
+        time: "22:40",
+        text: "마거릿이 편지를 되찾고, 쓰러진 남편을 두고 나온다.",
+        clueIds: ["ev-22"],
+      },
+      {
+        locationId: "greenhouse",
+        time: "22:50",
+        text: "아서가 빈 병을 발견하고 온실에 숨긴다.",
+        clueIds: ["ev-12", "ev-18"],
+      },
+      {
+        locationId: "study",
+        time: "23:40",
+        text: "클라라가 시신을 발견한다.",
+        clueIds: ["ev-p1"],
+      },
+    ],
+    keyClueIds: ["ev-01", "ev-02", "ev-03", "ev-09", "ev-15", "ev-19", "ev-20", "ev-23"],
+  },
+  endings: [
+    {
+      id: "justice",
+      title: "진실의 아침",
+      body: "새벽, 다리가 다시 이어지고 경찰이 도착했다. 빅터 헤일은 손수건을 내밀자 더는 말하지 않았다. 하트 앤 코의 감사는 예정대로 시작되었고, 엘리너는 아버지의 마지막 메모를 들고 처음으로 블랙우드라는 이름을 입에 올렸다. 마거릿은 그 주에 런던행 기차를 탔고, 아서는 스스로 병원에 정직 사실을 알렸다. 저택의 서재에는 따르다 만 브랜디 잔 하나가 오래 남아 있었다.",
+      condition: {
+        kind: "accused-is",
+        characterIds: ["victor"],
+      },
+    },
+    {
+      id: "unsolved",
+      title: "미제의 저택",
+      body: "아무도 지목되지 않은 채 아침이 왔다. 검시관은 심장 발작이라고 적었다. 신탁은 '유족 합의'에 따라 빅터 헤일이 계속 맡게 되었고, 감사는 열리지 않았다. 몇 해 뒤 블랙우드 직물이 문을 닫았을 때, 장부를 다시 펼쳐 본 사람은 아무도 없었다.",
+      condition: {
+        kind: "no-accused",
+      },
+    },
+    {
+      id: "wrong",
+      title: "잘못된 이름",
+      body: "경찰은 {accused}의 이름을 받아 적었다. 빅터 헤일은 유족을 위로하며 변호를 자청했고, 새 유언장은 서명되지 않은 채 금고 속에 남았다. 신탁 감사는 '가족의 비극'을 이유로 미뤄졌다. 그날 밤 별관 벽난로의 재를 치운 것도 그였다.",
+      condition: {
+        kind: "always",
+      },
+    },
+  ],
+} satisfies ScenarioInput;
