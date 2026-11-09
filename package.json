@@ -17,7 +17,8 @@
     "db:generate": "pnpm --filter @mm/db generate",
     "db:migrate": "pnpm --filter @mm/db migrate",
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
-    "infra:down": "docker compose -f infra/docker-compose.yml down"
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "game:serve": "turbo run build --filter=@mm/game... && pnpm --filter @mm/game start"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.5",

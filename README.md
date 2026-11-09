@@ -50,13 +50,14 @@ DB를 쓰려면 `pnpm infra:up`(Postgres·Redis) 후 `DATABASE_URL`을 설정하
 pnpm check   # lint + 경계 검사 + typecheck + test + build
 ```
 
-## 배포 (비공개 데모, 무료 티어)
+## 배포 (개발·비공개 데모 단계)
 
-| 대상                      | 서비스                                                                   |
-| ------------------------- | ------------------------------------------------------------------------ |
-| `apps/web`, `apps/studio` | Vercel Hobby (프로젝트 2개, Root Directory를 각 앱으로)                  |
-| `apps/game` + Redis       | Oracle Cloud Always Free VM: `infra/demo-vm.compose.yml` (Caddy로 HTTPS) |
-| DB·인증·스토리지          | Supabase Free                                                            |
-| 음성                      | LiveKit Cloud 무료 플랜                                                  |
+| 대상                      | 서비스                                                                                 |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| `apps/web`, `apps/studio` | Vercel Hobby (프로젝트 2개, Root Directory를 각 앱으로)                                |
+| DB·인증·스토리지          | Supabase Free                                                                          |
+| 음성                      | LiveKit Cloud 무료 플랜                                                                |
+| `apps/game`               | **로컬 PC** + Tailscale Funnel: [docs/local-game-server.md](docs/local-game-server.md) |
 
-게임 서버 이미지는 저장소 루트에서 `docker build -f infra/game.Dockerfile .`로 빌드합니다.
+공개 출시 단계에서는 게임 서버를 같은 Docker 이미지(`docker build -f infra/game.Dockerfile .`)로
+관리형 서비스나 VM(`infra/demo-vm.compose.yml`)으로 옮깁니다.
