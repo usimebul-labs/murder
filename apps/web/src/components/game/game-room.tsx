@@ -9,7 +9,7 @@ import { CharacterSelect, Prologue } from "./screens/intro";
 import { Lobby } from "./screens/lobby";
 import { Discussion, Explore, Statements } from "./screens/rounds";
 import type { GameContext } from "./types";
-import { useGame } from "./use-game";
+import { AUTO_JOIN, useGame } from "./use-game";
 
 export function GameRoom({
   scenarioVersionId,
@@ -62,6 +62,16 @@ export function GameRoom({
       );
   }, [toast]);
 
+  if (!ctx && roomId && AUTO_JOIN) {
+    return (
+      <EnteringScreen
+        connecting={game.connecting || (!game.error && !room)}
+        error={game.error}
+        onRetry={() => game.connect("", false)}
+      />
+    );
+  }
+
   if (!ctx) {
     return (
       <JoinScreen
@@ -112,6 +122,55 @@ function Screen({ ctx, onCopyLink }: { ctx: GameContext; onCopyLink: () => void 
     default:
       return null;
   }
+}
+
+/** 초대 링크로 들어올 때: 닉네임을 묻지 않고 계정 닉네임으로 바로 입장한다 */
+function EnteringScreen({
+  connecting,
+  error,
+  onRetry,
+}: {
+  connecting: boolean;
+  error: string | null;
+  onRetry: () => void;
+}) {
+  return (
+    <main className="nm-scene relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4">
+      <div className="relative flex w-full max-w-md flex-col items-center gap-4 rounded-[6px] border border-border bg-card/95 p-6 text-center shadow-[var(--shadow-raised)]">
+        <Eyebrow tone="var(--primary)">INVITATION · 초대장</Eyebrow>
+        {error && !connecting ? (
+          <>
+            <h1 className="font-display text-2xl font-semibold">입장하지 못했습니다</h1>
+            <p className="text-sm text-[var(--destructive-text)]">{error}</p>
+            <div className="flex gap-2">
+              <a href="/" className={cn(btn.base, btn.ghost)}>
+                로비로
+              </a>
+              {error.includes("로그인") ? (
+                <a
+                  href={`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`}
+                  className={cn(btn.base, btn.primary)}
+                >
+                  로그인
+                </a>
+              ) : (
+                <button type="button" className={cn(btn.base, btn.primary)} onClick={onRetry}>
+                  다시 시도
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 className="font-display text-2xl font-semibold">대기실로 들어가는 중</h1>
+            <p className="text-sm text-muted-foreground" role="status">
+              잠시만 기다려 주십시오.
+            </p>
+          </>
+        )}
+      </div>
+    </main>
+  );
 }
 
 function JoinScreen({
