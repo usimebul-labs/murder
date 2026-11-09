@@ -24,6 +24,9 @@ export interface Toast {
 
 const tokenKey = (roomId: string) => `mm:reconnect:${roomId}`;
 
+/** 초대 링크로 들어오면 닉네임을 묻지 않고 계정 닉네임으로 바로 입장한다 */
+export const AUTO_JOIN = process.env.NEXT_PUBLIC_DEV_AUTH !== "1";
+
 /** 게임 서버 방 연결과 상태 구독. 새로고침하면 재접속 토큰으로 자리를 이어받는다 */
 export function useGame(scenarioVersionId: string, initialRoomId?: string) {
   const [room, setRoom] = useState<Room | null>(null);
@@ -101,6 +104,30 @@ export function useGame(scenarioVersionId: string, initialRoomId?: string) {
     };
   }, []);
 
+  const connect = useCallback(
+    async (nickname: string, preview: boolean) => {
+      setError(null);
+      setConnecting(true);
+      try {
+        const client = await createGameClient(nickname || undefined);
+        const options = nickname ? { nickname } : {};
+        const joined = initialRoomId
+          ? await client.joinById(initialRoomId, options satisfies JoinRoomOptions)
+          : await client.create(ROOM_NAME, {
+              scenarioVersionId,
+              preview,
+              ...options,
+            } satisfies CreateRoomOptions & JoinRoomOptions);
+        attach(joined);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setConnecting(false);
+      }
+    },
+    [initialRoomId, scenarioVersionId, attach],
+  );
+
   // 사건 상세 화면에서 방을 만들고 넘어왔으면 그 연결을 그대로 쓴다.
   // 새로고침: 이 탭에 재접속 토큰이 있으면 먼저 그 자리로 돌아간다
   const triedReconnect = useRef(false);
@@ -116,41 +143,24 @@ export function useGame(scenarioVersionId: string, initialRoomId?: string) {
     try {
       token = sessionStorage.getItem(tokenKey(initialRoomId));
     } catch {}
-    if (!token) return;
     setConnecting(true);
     (async () => {
-      try {
-        const client = await createGameClient();
-        attach(await client.reconnect(token));
-      } catch {
+      if (token) {
         try {
-          sessionStorage.removeItem(tokenKey(initialRoomId));
-        } catch {}
-      } finally {
-        setConnecting(false);
+          const client = await createGameClient();
+          attach(await client.reconnect(token));
+          return setConnecting(false);
+        } catch {
+          try {
+            sessionStorage.removeItem(tokenKey(initialRoomId));
+          } catch {}
+        }
       }
+      // 로그인한 계정의 닉네임으로 바로 입장한다 (개발용 인증은 닉네임을 직접 입력)
+      if (AUTO_JOIN) await connect("", false);
+      else setConnecting(false);
     })();
-  }, [initialRoomId, attach]);
-
-  async function connect(nickname: string, preview: boolean) {
-    setError(null);
-    setConnecting(true);
-    try {
-      const client = await createGameClient(nickname || undefined);
-      const joined = initialRoomId
-        ? await client.joinById(initialRoomId, { nickname } satisfies JoinRoomOptions)
-        : await client.create(ROOM_NAME, {
-            scenarioVersionId,
-            preview,
-            nickname,
-          } satisfies CreateRoomOptions & JoinRoomOptions);
-      attach(joined);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setConnecting(false);
-    }
-  }
+  }, [initialRoomId, attach, connect]);
 
   const send = useCallback(
     <K extends keyof ClientMessages>(type: K, payload: ClientMessages[K]) => {

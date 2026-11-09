@@ -158,8 +158,8 @@ export function CaseDetail({
   const [tab, setTab] = useState<Tab>("prologue");
   const [createOpen, setCreateOpen] = useState(false);
   const [mine, setMine] = useState<MyRoom | null>(null);
-  const mineRef = useRef<MyRoom | null>(null);
-  mineRef.current = mine;
+  // 대기실로 넘기지 않은 내 방. 렌더와 무관하게 유지해야 화면을 떠날 때 넘긴 방을 끊지 않는다
+  const heldRef = useRef<string | null>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
   const [tabsH, setTabsH] = useState(44);
   const rooms = useRooms(theme.scenarioVersionId);
@@ -168,7 +168,7 @@ export function CaseDetail({
   // 대기실에 들어가지 않고 이 화면을 떠나면 만들어 둔 방에서 나간다
   useEffect(
     () => () => {
-      if (mineRef.current) dropHeldRoom(mineRef.current.code);
+      if (heldRef.current) dropHeldRoom(heldRef.current);
     },
     [],
   );
@@ -183,7 +183,7 @@ export function CaseDetail({
 
   const loginHref = `/login?next=${encodeURIComponent(`/cases/${theme.id}`)}`;
   const enterRoom = (code: string, scenarioVersionId: string) => {
-    if (mineRef.current?.code === code) mineRef.current = null;
+    if (heldRef.current === code) heldRef.current = null;
     router.push(`/play/${scenarioVersionId}?room=${encodeURIComponent(code)}`);
   };
   const openCreate = () => (needsLogin ? router.push(loginHref) : setCreateOpen(true));
@@ -276,6 +276,7 @@ export function CaseDetail({
           scenarioVersionId={theme.scenarioVersionId}
           mine={mine}
           onCreated={(r) => {
+            heldRef.current = r.code;
             setMine(r);
             void rooms.refresh();
           }}

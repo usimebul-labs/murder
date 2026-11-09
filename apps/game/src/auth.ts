@@ -34,6 +34,7 @@ export async function verifyToken(token: string): Promise<AuthUser> {
   const nickname =
     (typeof meta.nickname === "string" && meta.nickname) ||
     (typeof meta.name === "string" && meta.name) ||
+    (typeof payload.email === "string" && payload.email.split("@")[0]) ||
     "탐정";
   return { userId: payload.sub, nickname };
 }

@@ -166,7 +166,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
         client.sessionId,
         new Player({
           userId: auth.userId,
-          nickname: options.nickname?.slice(0, 20) || auth.nickname,
+          nickname: (options.nickname || auth.nickname).slice(0, 20),
           isHost: this.state.players.size === 0,
         }),
       );
