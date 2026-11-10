@@ -14,6 +14,7 @@ const toListing = (m: Partial<RoomListing> | undefined, roomId: string): RoomLis
   players: m?.players ?? 0,
   maxPlayers: m?.maxPlayers ?? 0,
   status: m?.status ?? "waiting",
+  test: m?.test ?? false,
 });
 
 /** 대기실 목록: 공개 방만, ?scenario=<시나리오 버전 id>로 거른다 */

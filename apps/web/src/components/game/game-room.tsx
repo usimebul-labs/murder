@@ -235,7 +235,7 @@ function JoinScreen({
             <span>
               테스트 방으로 열기
               <span className="block text-xs text-muted-foreground">
-                6명이 모이지 않아도 시작할 수 있어요
+                빈 자리를 AI 봇이 채워 혼자서도 끝까지 진행해 볼 수 있어요
               </span>
             </span>
           </label>

@@ -30,7 +30,8 @@ const PHASE_FLOW_LABEL: Record<string, string> = {
 export function Lobby({ ctx, onCopyLink }: { ctx: GameContext; onCopyLink: () => void }) {
   const { state, scenario, me } = ctx;
   const players = Object.entries(state.players);
-  const max = scenario?.meta.maxPlayers ?? state.characters.length;
+  const max = state.capacity || scenario?.meta.maxPlayers || state.characters.length;
+  const botSeats = state.preview ? Math.max(0, max - players.length) : 0;
   const readyCount = players.filter(([, p]) => p.ready).length;
   const enough = state.preview || players.length >= state.minPlayers;
   const allReady = players.length > 0 && readyCount === players.length;
@@ -61,7 +62,7 @@ export function Lobby({ ctx, onCopyLink }: { ctx: GameContext; onCopyLink: () =>
               ))}
               {state.preview && (
                 <span className="rounded-[2px] border border-[var(--secret-border)] bg-[var(--secret-surface)] px-2 py-0.5 text-xs font-semibold text-[var(--secret)]">
-                  테스트 방 · 인원 제한 없음
+                  테스트 방 · 빈 자리는 AI 봇
                 </span>
               )}
             </div>
@@ -116,7 +117,7 @@ export function Lobby({ ctx, onCopyLink }: { ctx: GameContext; onCopyLink: () =>
                         className="flex h-14 items-center gap-2.5 rounded-[6px] border border-dashed border-border px-3 text-sm text-muted-foreground"
                       >
                         <span className="h-8 w-8 rounded-full border border-dashed border-border-strong" />
-                        빈 자리
+                        {state.preview ? "AI 봇 자리" : "빈 자리"}
                       </li>
                     ),
                   )}
@@ -143,9 +144,11 @@ export function Lobby({ ctx, onCopyLink }: { ctx: GameContext; onCopyLink: () =>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {!enough
                       ? `${state.minPlayers}명이 모여야 시작할 수 있어요`
-                      : allReady
-                        ? "모두 준비됐어요"
-                        : "준비가 되면 버튼을 눌러 주세요"}
+                      : !allReady
+                        ? "준비가 되면 버튼을 눌러 주세요"
+                        : botSeats > 0
+                          ? `모두 준비됐어요. 시작하면 빈 자리 ${botSeats}곳을 AI 봇이 채워요`
+                          : "모두 준비됐어요"}
                   </p>
                 </div>
                 <button

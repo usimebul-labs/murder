@@ -41,6 +41,8 @@ export const Player = schema(
     done: t.boolean().default(false),
     connected: t.boolean().default(true),
     isHost: t.boolean().default(false),
+    /** 테스트 방에서 빈 자리를 채운 AI 봇 */
+    isBot: t.boolean().default(false),
     /** 누구에게 투표했는지는 공개하지 않고, 투표 여부만 공개 */
     hasVoted: t.boolean().default(false),
     /** 이번 탐색 라운드에 남은 수집 횟수 */
@@ -110,6 +112,8 @@ export const GameState = schema(
     scenarioTitle: t.string().default(""),
     preview: t.boolean().default(false),
     minPlayers: t.uint8().default(0),
+    /** 모집 인원 (방을 만들 때 고른 인원) */
+    capacity: t.uint8().default(0),
     characters: t.array(CharacterInfo),
     phases: t.array(PhaseInfo),
     phaseIndex: t.int8().default(-1),
