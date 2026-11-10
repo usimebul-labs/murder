@@ -259,7 +259,13 @@ export function CaseFile({ ctx, className }: { ctx: GameContext; className?: str
               PROLOGUE {chapter.title} · {scenario.meta.setting?.year ?? ""}{" "}
               {scenario.meta.setting?.place ?? ""}
             </p>
-            <p className="mt-4 whitespace-pre-wrap font-serif text-[17px] leading-[1.85]">
+            {/* 본문만 따로 스크롤해 이전·다음 버튼이 늘 보이게 한다 */}
+            <p
+              key={page}
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: 키보드로 본문을 스크롤할 수 있어야 한다
+              tabIndex={0}
+              className="mt-4 max-h-[clamp(200px,40vh,360px)] overflow-y-auto overscroll-contain whitespace-pre-wrap pr-2 font-serif text-[17px] leading-[1.85] [scrollbar-color:var(--paper-rule)_transparent] [scrollbar-width:thin]"
+            >
               {chapter.body}
             </p>
             <div className="mt-5 flex items-center justify-between border-t border-[var(--paper-rule)] pt-3 text-sm">

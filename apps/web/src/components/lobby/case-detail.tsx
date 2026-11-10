@@ -375,6 +375,7 @@ function Prologue({
   const [readIdx, setReadIdx] = useState(-1);
   const [canSpeak, setCanSpeak] = useState(false);
   const token = useRef(0);
+  const scroller = useRef<HTMLElement>(null);
   const reading = readIdx >= 0;
   const pg = pages[page] ?? pages[0];
   const last = page === pages.length - 1;
@@ -386,6 +387,12 @@ function Prologue({
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     };
   }, []);
+
+  // 읽어주기 중인 문단이 스크롤 영역 밖에 있으면 따라간다
+  useEffect(() => {
+    if (readIdx < 0) return;
+    scroller.current?.children[readIdx]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [readIdx]);
 
   const stopRead = () => {
     token.current += 1;
@@ -425,7 +432,6 @@ function Prologue({
   };
 
   if (!pg) return null;
-  const longest = Math.max(...pages.map((p) => p.paras.join("").length));
 
   return (
     <article className="flex flex-col gap-5 rounded-[6px] bg-[var(--paper-surface)] p-[clamp(22px,4vw,44px)] text-[var(--paper-ink)] shadow-[var(--shadow-paper)]">
@@ -452,9 +458,17 @@ function Prologue({
       <h2 className="font-serif text-[clamp(22px,2.6vw,28px)] font-bold leading-[1.35] [text-wrap:balance]">
         {pg.title}
       </h2>
-      <div
-        className="flex max-w-[62ch] flex-col gap-1.5"
-        style={{ minHeight: pages.length > 1 ? `${Math.ceil(longest / 38) * 1.9}em` : undefined }}
+      {/* 장이 길어도 카드가 늘어나지 않도록 높이를 고정하고 본문만 따로 스크롤한다 */}
+      <section
+        key={page}
+        ref={scroller}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: 키보드로 본문을 스크롤할 수 있어야 한다
+        tabIndex={0}
+        aria-label={`프롤로그 ${pg.title}`}
+        className={cn(
+          "-mx-2.5 flex max-w-[calc(62ch+20px)] flex-col gap-1.5 overflow-y-auto overscroll-contain px-2.5 [scrollbar-color:var(--paper-rule)_transparent] [scrollbar-width:thin]",
+          pages.length > 1 ? "h-[clamp(240px,46vh,440px)]" : "max-h-[clamp(240px,46vh,440px)]",
+        )}
       >
         {pg.paras.map((text, i) => (
           <p
@@ -471,7 +485,7 @@ function Prologue({
             {text}
           </p>
         ))}
-      </div>
+      </section>
       {last && detail.facts.length > 0 && (
         <dl className="mt-1.5 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-x-6 gap-y-4 border-t-[3px] border-double border-[var(--paper-rule)] pt-[18px]">
           {detail.facts.map((f) => (
