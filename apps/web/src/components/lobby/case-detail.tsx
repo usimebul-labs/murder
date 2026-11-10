@@ -467,7 +467,7 @@ function Prologue({
         tabIndex={0}
         aria-label={`프롤로그 ${pg.title}`}
         className={cn(
-          "-mx-2.5 flex max-w-[calc(62ch+20px)] flex-col gap-1.5 overflow-y-auto overscroll-contain px-2.5 [scrollbar-color:var(--paper-rule)_transparent] [scrollbar-width:thin]",
+          "-mx-2.5 flex flex-col gap-1.5 overflow-y-auto overscroll-contain px-2.5 [scrollbar-color:var(--paper-rule)_transparent] [scrollbar-width:thin]",
           pages.length > 1 ? "h-[clamp(240px,46vh,440px)]" : "max-h-[clamp(240px,46vh,440px)]",
         )}
       >
