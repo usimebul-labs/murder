@@ -18,6 +18,7 @@ import { type AuthUser, verifyToken } from "../auth.js";
 import {
   boardClues,
   canSee,
+  castRoles,
   currentRound,
   type GameFacts,
   isUnlocked,
@@ -253,24 +254,28 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
 
   private registerMessages() {
     this.handle("character:select", (client, { characterId }, player) => {
-      const selecting =
-        this.currentPhase()?.kind === "character-select" ||
-        (this.state.status === "lobby" && !this.hasSelectPhase());
-      if (!selecting || this.castingDone)
+      const casting = this.currentPhase()?.kind === "character-select" && !this.castingDone;
+      const lobbyPick = this.state.status === "lobby" && !this.hasSelectPhase();
+      if (!casting && !lobbyPick)
         return this.fail(client, "not-allowed-in-phase", "지금은 인물을 고를 수 없습니다");
-      if (characterId === "") {
-        player.characterId = "";
+      if (characterId !== "" && !this.scenario.characters.some((c) => c.id === characterId))
+        return this.fail(client, "invalid-message", "없는 인물입니다");
+      if (casting) {
+        // 지망은 겹쳐도 된다. 페이즈가 끝날 때 추첨으로 정한다
+        player.wishId = characterId;
         player.done = false;
         return;
       }
-      if (!this.scenario.characters.some((c) => c.id === characterId))
-        return this.fail(client, "invalid-message", "없는 인물입니다");
+      if (characterId === "") {
+        player.characterId = "";
+        player.ready = false;
+        return;
+      }
       const taken = [...this.state.players.values()].some(
         (p) => p !== player && p.characterId === characterId,
       );
       if (taken) return this.fail(client, "character-taken", "다른 참가자가 고른 인물입니다");
       player.characterId = characterId;
-      player.done = false;
       player.ready = false;
     });
 
@@ -586,13 +591,27 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
 
   /* ───────── 캐릭터 배정 ───────── */
 
-  /** 인물을 고르지 않은 참가자에게 남은 인물을 무작위로 배정하고 비밀 문서를 보낸다 */
+  /**
+   * 지망을 모아 인물을 배정하고 비밀 문서를 보낸다.
+   * 여러 명이 지망한 인물은 추첨하고, 떨어졌거나 지망하지 않은 참가자는 남은 인물에 무작위로 배정한다.
+   */
   private finishCasting() {
     if (this.castingDone) return;
-    const taken = new Set([...this.state.players.values()].map((p) => p.characterId));
-    const left = shuffle(this.scenario.characters.map((c) => c.id).filter((id) => !taken.has(id)));
-    for (const p of this.state.players.values()) {
-      if (!p.characterId) p.characterId = left.shift() ?? "";
+    const entries = [...this.state.players.entries()];
+    const { assigned, lotteries } = castRoles(
+      this.scenario.characters.map((c) => c.id),
+      entries.map(([key, p]) => ({ key, wish: p.wishId })),
+    );
+    for (const [key, p] of entries) {
+      p.characterId = assigned.get(key) ?? "";
+      p.wishId = "";
+    }
+    for (const lot of lotteries) {
+      const name = this.characterName(lot.characterId);
+      const winner = this.state.players.get(lot.winner)?.nickname ?? "";
+      this.announce(
+        `${josa(name, "을/를")} ${lot.wishers.length}명이 지망해 추첨했습니다 — ${winner} 님이 맡습니다`,
+      );
     }
     this.castingDone = true;
     this.sendScripts();

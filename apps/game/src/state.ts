@@ -34,6 +34,8 @@ export const Player = schema(
     userId: t.string().default(""),
     nickname: t.string().default(""),
     characterId: t.string().default(""),
+    /** 인물 선택 페이즈에서 지망한 인물 id. 여러 명이 같은 인물을 지망할 수 있다 */
+    wishId: t.string().default(""),
     ready: t.boolean().default(false),
     /** 이 페이즈에서 할 일을 마쳤는지 (숙지 완료, 캐릭터 확정 등) */
     done: t.boolean().default(false),

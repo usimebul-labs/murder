@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@mm/ui";
-import { ChevronLeft, ChevronRight, CircleCheck, Shuffle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleCheck, Dices, Shuffle } from "lucide-react";
 import { useRef, useState } from "react";
 import { josa } from "@/lib/josa";
 import { ActionBar, Avatar, asset, btn, Countdown, Eyebrow, Portrait, TopBar } from "../primitives";
@@ -134,16 +134,16 @@ export function Prologue({ ctx }: { ctx: GameContext }) {
   );
 }
 
-/** 인물 선택: 먼저 고른 사람이 맡고, 고르지 않은 사람은 남은 인물에 무작위 배정된다 */
+/** 인물 선택: 지망이 겹치면 추첨하고, 떨어졌거나 지망하지 않은 사람은 남은 인물에 무작위 배정된다 */
 export function CharacterSelect({ ctx }: { ctx: GameContext }) {
   const { scenario, state, me } = ctx;
-  const [focus, setFocus] = useState<string>(me?.characterId || state.characters[0]?.id || "");
+  const [focus, setFocus] = useState<string>(me?.wishId || state.characters[0]?.id || "");
   const players = Object.values(state.players);
   const confirmed = players.filter((p) => p.done).length;
-  const chosen = me?.characterId ? ctx.character(me.characterId) : undefined;
+  const chosen = me?.wishId ? ctx.character(me.wishId) : undefined;
   const detail = scenario?.characters.find((c) => c.id === focus);
   const detailInfo = ctx.character(focus);
-  const holderOf = (id: string) => players.find((p) => p.characterId === id);
+  const wishersOf = (id: string) => players.filter((p) => p.wishId === id);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -166,13 +166,13 @@ export function CharacterSelect({ ctx }: { ctx: GameContext }) {
             당신은 누구입니까
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            맡고 싶은 인물을 고르십시오. 먼저 고른 사람이 그 인물을 맡고, 고르지 않은 참가자는 남은
-            인물에 무작위로 배정됩니다.
+            맡고 싶은 인물을 지망하십시오. 여러 명이 같은 인물을 지망하면 추첨으로 한 명을 정하고,
+            떨어졌거나 지망하지 않은 참가자는 남은 인물에 무작위로 배정됩니다.
           </p>
           <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
             {state.characters.map((c, i) => {
-              const holder = holderOf(c.id);
-              const mine = me?.characterId === c.id;
+              const wishers = wishersOf(c.id);
+              const mine = me?.wishId === c.id;
               const pub = scenario?.characters.find((x) => x.id === c.id);
               return (
                 <li key={c.id}>
@@ -180,7 +180,7 @@ export function CharacterSelect({ ctx }: { ctx: GameContext }) {
                     type="button"
                     onClick={() => setFocus(c.id)}
                     onDoubleClick={() =>
-                      !holder && ctx.send("character:select", { characterId: c.id })
+                      !me?.done && ctx.send("character:select", { characterId: c.id })
                     }
                     aria-pressed={focus === c.id}
                     className={cn(
@@ -193,7 +193,7 @@ export function CharacterSelect({ ctx }: { ctx: GameContext }) {
                       <Portrait
                         character={c}
                         className="aspect-[4/5] w-full"
-                        dim={!!holder && !mine}
+                        dim={wishers.length > 0 && !mine}
                       />
                       <span className="absolute left-2 top-2 rounded-[2px] bg-[var(--paper-100)] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[var(--ink-950)]">
                         {String(i + 1).padStart(2, "0")}
@@ -209,14 +209,24 @@ export function CharacterSelect({ ctx }: { ctx: GameContext }) {
                         {pub?.tagline || c.publicProfile}
                       </span>
                       <span className="mt-2 flex items-center gap-1.5 border-t border-border pt-2 text-xs">
-                        {holder ? (
+                        {wishers.length > 0 ? (
                           <>
-                            <CircleCheck size={13} className="text-[var(--alibi)]" />
-                            {holder.nickname}
-                            {mine && " (나)"}
+                            {wishers.length > 1 ? (
+                              <Dices size={13} className="flex-none text-primary" />
+                            ) : (
+                              <CircleCheck size={13} className="flex-none text-[var(--alibi)]" />
+                            )}
+                            <span className="truncate">
+                              {wishers.map((p) => (p === me ? "나" : p.nickname)).join(", ")}
+                            </span>
+                            {wishers.length > 1 && (
+                              <span className="ml-auto flex-none font-mono text-[11px] text-primary">
+                                추첨 {wishers.length}명
+                              </span>
+                            )}
                           </>
                         ) : (
-                          <span className="text-muted-foreground">선택 가능</span>
+                          <span className="text-muted-foreground">지망 없음</span>
                         )}
                       </span>
                     </div>
@@ -257,27 +267,40 @@ export function CharacterSelect({ ctx }: { ctx: GameContext }) {
               )}
               <button
                 type="button"
-                disabled={!!holderOf(detail.id) || me?.done}
+                disabled={me?.wishId === detail.id || me?.done}
                 onClick={() => ctx.send("character:select", { characterId: detail.id })}
                 className={cn(btn.base, btn.primary, "w-full")}
               >
-                {me?.characterId === detail.id
-                  ? "내가 고른 인물"
-                  : holderOf(detail.id)
-                    ? "다른 참가자가 골랐어요"
-                    : `${josa(detail.name.split(" ")[0] ?? detail.name, "으로/로")} 지망`}
+                {me?.wishId === detail.id
+                  ? "내가 지망한 인물"
+                  : `${josa(detail.name.split(" ")[0] ?? detail.name, "으로/로")} 지망`}
               </button>
+              {wishersOf(detail.id).filter((p) => p !== me).length > 0 && (
+                <p className="text-center text-xs text-muted-foreground">
+                  {wishersOf(detail.id)
+                    .filter((p) => p !== me)
+                    .map((p) => p.nickname)
+                    .join(", ")}{" "}
+                  님도 지망했어요. 겹치면 추첨으로 정해요.
+                </p>
+              )}
             </div>
           )}
         </aside>
       </div>
       <ActionBar
         eyebrow="MY CHOICE"
-        title={chosen ? `${josa(chosen.name, "을/를")} 골랐어요` : "아직 고르지 않았어요"}
+        title={
+          chosen
+            ? `${josa(chosen.name, "을/를")} 지망했어요`
+            : me?.done
+              ? "아무나 괜찮아요"
+              : "아직 고르지 않았어요"
+        }
         desc={
           me?.done
-            ? "확정했어요. 다른 참가자를 기다리는 중이에요."
-            : "인물을 눌러 지망하세요. 확정 전에는 언제든 바꿀 수 있어요."
+            ? "확정했어요. 모두 확정하면 추첨하고 배정 결과를 알려 드려요."
+            : "인물을 눌러 지망하세요. 다른 참가자와 겹쳐도 괜찮아요."
         }
       >
         {!me?.done && (
@@ -294,7 +317,7 @@ export function CharacterSelect({ ctx }: { ctx: GameContext }) {
         )}
         <button
           type="button"
-          disabled={!me?.characterId && !me?.done}
+          disabled={!me?.wishId && !me?.done}
           onClick={() => ctx.send("player:done", { done: !me?.done })}
           className={cn(btn.base, me?.done ? btn.secondary : btn.primary)}
         >

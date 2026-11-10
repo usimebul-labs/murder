@@ -248,3 +248,45 @@ export function renderEndingBody(scenario: Scenario, ending: Ending, accusedId: 
   const name = scenario.characters.find((c) => c.id === accusedId)?.name ?? "아무도";
   return ending.body.replaceAll("{accused}", name);
 }
+
+/** 역할 배정 결과: 참가자 키 → 맡을 인물 id, 그리고 추첨이 있었던 인물별 지망자 */
+export interface CastingResult {
+  assigned: Map<string, string>;
+  lotteries: { characterId: string; wishers: string[]; winner: string }[];
+}
+
+/**
+ * 지망을 받아 인물을 배정한다.
+ * 한 인물을 한 명만 지망하면 그 사람이 맡고, 여러 명이 지망하면 추첨으로 한 명을 뽑는다.
+ * 떨어졌거나 지망하지 않은 참가자는 남은 인물에 무작위로 배정한다.
+ */
+export function castRoles(
+  characterIds: readonly string[],
+  wishes: readonly { key: string; wish: string }[],
+  random: () => number = Math.random,
+): CastingResult {
+  const assigned = new Map<string, string>();
+  const lotteries: CastingResult["lotteries"] = [];
+  for (const id of characterIds) {
+    const wishers = wishes.filter((w) => w.wish === id).map((w) => w.key);
+    if (wishers.length === 0) continue;
+    const winner = wishers[Math.floor(random() * wishers.length)] as string;
+    assigned.set(winner, id);
+    if (wishers.length > 1) lotteries.push({ characterId: id, wishers, winner });
+  }
+  const taken = new Set(assigned.values());
+  const left = shuffle(
+    characterIds.filter((id) => !taken.has(id)),
+    random,
+  );
+  const rest = shuffle(
+    wishes.filter((w) => !assigned.has(w.key)),
+    random,
+  );
+  for (const w of rest) {
+    const next = left.shift();
+    if (!next) break;
+    assigned.set(w.key, next);
+  }
+  return { assigned, lotteries };
+}
