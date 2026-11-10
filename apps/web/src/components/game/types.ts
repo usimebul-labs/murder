@@ -7,6 +7,8 @@ export interface GameSnapshot {
   scenarioTitle: string;
   preview: boolean;
   minPlayers: number;
+  /** 모집 인원 */
+  capacity: number;
   characters: CharacterInfo[];
   phases: PhaseInfo[];
   phaseIndex: number;
@@ -74,6 +76,8 @@ export interface PlayerInfo {
   done: boolean;
   connected: boolean;
   isHost: boolean;
+  /** 테스트 방에서 빈 자리를 채운 AI 봇 */
+  isBot: boolean;
   hasVoted: boolean;
   picksLeft: number;
 }

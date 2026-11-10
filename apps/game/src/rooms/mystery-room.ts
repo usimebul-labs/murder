@@ -16,6 +16,16 @@ import {
 import { type Clue, type Phase, type Scenario, toPublicScenario } from "@mm/scenario-schema";
 import { type AuthUser, verifyToken } from "../auth.js";
 import {
+  BOT_ACTION_MS,
+  BOT_STATEMENT,
+  BOT_STATEMENT_MS,
+  botJudgement,
+  botKey,
+  botNickname,
+  botVoteTarget,
+  pickRandom,
+} from "../bots.js";
+import {
   boardClues,
   canSee,
   castRoles,
@@ -77,6 +87,8 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
   private phaseTimer?: Timer;
   private turnTimer?: Timer;
   private speakerTimer?: Timer;
+  /** 테스트 방 봇의 다음 행동 (투표, 판정) */
+  private botTimer?: Timer;
 
   static async onAuth(token: string, _options: unknown, _context: AuthContext) {
     return verifyToken(token);
@@ -98,6 +110,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     state.scenarioTitle = this.scenario.meta.title;
     state.preview = !!options.preview;
     state.minPlayers = this.scenario.meta.minPlayers;
+    state.capacity = this.capacity;
     for (const c of this.scenario.characters) {
       state.characters.push(
         new CharacterInfo({
@@ -136,6 +149,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
       players: 0,
       maxPlayers: this.capacity,
       status: "waiting",
+      test: !!options.preview,
     };
     await this.setMatchmaking({
       metadata: { ...this.listing, scenarioTitle: meta.title, preview: !!options.preview },
@@ -208,7 +222,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     } else {
       player.connected = false;
       if (player.isHost) {
-        const next = [...this.state.players.values()].find((p) => p.connected);
+        const next = [...this.state.players.values()].find((p) => p.connected && !p.isBot);
         if (next) {
           player.isHost = false;
           next.isHost = true;
@@ -307,6 +321,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
       if (this.state.status === "lobby") {
         const problem = this.startProblem();
         if (problem) return this.fail(client, "not-allowed-in-phase", problem);
+        if (this.state.preview) this.fillWithBots();
         this.state.status = "playing";
         void this.syncListing();
         this.phase.send({ type: "START" });
@@ -420,27 +435,14 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
       if (!phase.allowSelfVote && suspectCharacterId === player.characterId) {
         return this.fail(client, "invalid-message", "자기 자신은 지목할 수 없습니다");
       }
-      this.votes.set(player.characterId, suspectCharacterId);
-      player.hasVoted = true;
-      const voters = this.assignedPlayers();
-      if (voters.every((p) => p.hasVoted)) this.resolveVote(false);
+      this.castVote(player, suspectCharacterId);
     });
 
     this.handle("jury:vote", (client, { characterId, objectiveId, achieved }, player) => {
       if (this.currentPhase()?.kind !== "objectives-review") {
         return this.fail(client, "not-allowed-in-phase", "목표 결산 중에만 판정할 수 있습니다");
       }
-      const key = `${characterId}:${objectiveId}`;
-      const item = this.state.jury.get(key);
-      const voter = player.characterId;
-      if (!item || !voter || voter === characterId) return;
-      const votes = this.juryVotes.get(key) ?? new Map<string, boolean>();
-      if (votes.has(voter)) return;
-      votes.set(voter, !!achieved);
-      this.juryVotes.set(key, votes);
-      if (achieved) item.yes += 1;
-      else item.no += 1;
-      item.voters.push(voter);
+      this.castJury(player.characterId, `${characterId}:${objectiveId}`, !!achieved);
       this.computeResult();
     });
 
@@ -520,7 +522,8 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     const phase = this.currentPhase();
     if (!phase) return;
 
-    for (const p of this.state.players.values()) p.done = false;
+    // 봇은 숙지·확정할 것이 없으니 늘 마친 상태로 둔다
+    for (const p of this.state.players.values()) p.done = p.isBot;
     this.state.turnCharacterId = "";
     this.state.speakerCharacterId = "";
     this.state.phaseEndsAt = phase.durationSec > 0 ? Date.now() + phase.durationSec * 1000 : 0;
@@ -547,10 +550,12 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
         this.state.runoffCandidates.clear();
         this.state.accusedCharacterId = "";
         for (const p of this.state.players.values()) p.hasVoted = false;
+        this.scheduleBots(() => this.botsVote());
         break;
       case "objectives-review":
         this.openJury();
         this.computeResult();
+        this.scheduleBots(() => this.botsJudge());
         break;
       case "ending":
         this.computeResult(true);
@@ -586,7 +591,8 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     this.phaseTimer?.clear();
     this.turnTimer?.clear();
     this.speakerTimer?.clear();
-    this.phaseTimer = this.turnTimer = this.speakerTimer = undefined;
+    this.botTimer?.clear();
+    this.phaseTimer = this.turnTimer = this.speakerTimer = this.botTimer = undefined;
   }
 
   /* ───────── 캐릭터 배정 ───────── */
@@ -818,20 +824,18 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     this.state.turnCharacterId = characterId;
     this.state.turnNumber = this.turnIndex + 1;
     this.state.turnEndsAt = Date.now() + seconds * 1000;
-    const connected = this.playerByCharacter(characterId)?.connected ?? false;
-    this.turnTimer = this.clock.setTimeout(
-      () => this.autoPick(),
-      connected ? seconds * 1000 : 3000,
-    );
+    const player = this.playerByCharacter(characterId);
+    const delay = player?.isBot ? BOT_ACTION_MS : player?.connected ? seconds * 1000 : 3000;
+    this.turnTimer = this.clock.setTimeout(() => this.autoPick(), delay);
   }
 
   /** 시간이 지나거나 자리를 비우면 무작위로 한 장 줍는다 */
   private autoPick() {
     const characterId = this.state.turnCharacterId;
     if (!characterId || this.currentPhase()?.kind !== "investigation") return;
-    const options = this.availableFor(characterId);
-    const clue = options[Math.floor(Math.random() * options.length)];
-    if (clue) this.pick(characterId, clue, true);
+    const clue = pickRandom(this.availableFor(characterId));
+    const bot = !!this.playerByCharacter(characterId)?.isBot;
+    if (clue) this.pick(characterId, clue, !bot);
     else this.nextTurn();
   }
 
@@ -873,10 +877,13 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
       this.speakerTimer = this.clock.setTimeout(() => this.advancePhase(), 4000);
       return;
     }
+    const bot = !!this.playerByCharacter(characterId)?.isBot;
+    const ms = bot ? BOT_STATEMENT_MS : phase.perPlayerSec * 1000;
     this.state.speakerCharacterId = characterId;
-    this.state.speakerSec = phase.perPlayerSec;
-    this.state.speakerEndsAt = Date.now() + phase.perPlayerSec * 1000;
-    this.speakerTimer = this.clock.setTimeout(() => this.nextSpeaker(), phase.perPlayerSec * 1000);
+    this.state.speakerSec = Math.round(ms / 1000);
+    this.state.speakerEndsAt = Date.now() + ms;
+    if (bot) this.botSay(characterId, BOT_STATEMENT);
+    this.speakerTimer = this.clock.setTimeout(() => this.nextSpeaker(), ms);
   }
 
   /* ───────── 투표 ───────── */
@@ -904,6 +911,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
       this.announce(
         `동표입니다. ${top.map((id) => this.characterName(id)).join(", ")} 중에서 결선 투표를 하십시오`,
       );
+      this.scheduleBots(() => this.botsVote());
       return;
     }
     const accused = top.length === 1 ? top[0] : null;
@@ -913,6 +921,92 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     );
     this.phaseTimer?.clear();
     this.phaseTimer = this.clock.setTimeout(() => this.advancePhase(), 2500);
+  }
+
+  private castVote(player: Player, suspectCharacterId: string | undefined) {
+    // 지목할 사람이 없으면(결선 후보가 자기뿐) 기권으로 친다
+    if (suspectCharacterId) this.votes.set(player.characterId, suspectCharacterId);
+    player.hasVoted = true;
+    if (this.assignedPlayers().every((p) => p.hasVoted)) this.resolveVote(false);
+  }
+
+  /* ───────── 테스트 방 봇 ───────── */
+
+  /** 테스트 방을 시작할 때 모집 인원까지 남은 자리를 AI 봇으로 채운다 */
+  private fillWithBots() {
+    const empty = this.capacity - this.state.players.size;
+    if (empty <= 0) return;
+    // 대기실에서 인물을 고르는 시나리오면 남은 인물을 봇에게 나눠 준다
+    const taken = new Set([...this.state.players.values()].map((p) => p.characterId));
+    const free = shuffle(this.scenario.characters.map((c) => c.id).filter((id) => !taken.has(id)));
+    let added = 0;
+    for (let n = 1; added < empty; n++) {
+      const key = botKey(n);
+      if (this.state.players.has(key)) continue;
+      const characterId = this.hasSelectPhase() ? "" : free.shift();
+      if (characterId === undefined) break;
+      this.state.players.set(
+        key,
+        new Player({
+          userId: key,
+          nickname: botNickname(n),
+          characterId,
+          ready: true,
+          isBot: true,
+        }),
+      );
+      added += 1;
+    }
+    if (added > 0) this.announce(`빈 자리 ${added}곳을 AI 봇이 채웠습니다`);
+  }
+
+  private bots(): [string, Player][] {
+    return [...this.state.players].filter(([, p]) => p.isBot && p.characterId);
+  }
+
+  private scheduleBots(action: () => void) {
+    if (!this.state.preview || this.bots().length === 0) return;
+    this.botTimer?.clear();
+    this.botTimer = this.clock.setTimeout(action, BOT_ACTION_MS);
+  }
+
+  private botsVote() {
+    const phase = this.currentPhase();
+    if (phase?.kind !== "vote" || this.state.accusedCharacterId) return;
+    const round = this.state.voteRound;
+    const candidates = this.voteCandidates();
+    for (const [, bot] of this.bots()) {
+      // 개표나 결선으로 넘어갔으면 멈춘다. 결선 투표는 따로 예약된다
+      if (this.state.accusedCharacterId || this.state.voteRound !== round) return;
+      if (bot.hasVoted) continue;
+      this.castVote(bot, botVoteTarget(candidates, bot.characterId, phase.allowSelfVote));
+    }
+  }
+
+  private botsJudge() {
+    if (this.currentPhase()?.kind !== "objectives-review") return;
+    for (const [, bot] of this.bots()) {
+      for (const key of this.state.jury.keys()) {
+        this.castJury(bot.characterId, key, botJudgement());
+      }
+    }
+    this.computeResult();
+  }
+
+  /** 봇이 전체 채팅에 말한다 */
+  private botSay(characterId: string, text: string) {
+    const entry = this.bots().find(([, p]) => p.characterId === characterId);
+    if (!entry) return;
+    const message: ChatMessage = {
+      id: `${Date.now()}-${entry[0]}`,
+      channel: "all",
+      fromSessionId: entry[0],
+      characterId,
+      text,
+      sentAt: Date.now(),
+    };
+    this.pushChat(message);
+    this.broadcast("chat:message", message);
   }
 
   /* ───────── 목표 결산·결말 ───────── */
@@ -930,6 +1024,19 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
         );
       }
     }
+  }
+
+  /** 판정단 한 표. 자기 목표나 이미 판정한 항목은 무시한다 */
+  private castJury(voter: string, key: string, achieved: boolean) {
+    const item = this.state.jury.get(key);
+    if (!item || !voter || voter === item.characterId) return;
+    const votes = this.juryVotes.get(key) ?? new Map<string, boolean>();
+    if (votes.has(voter)) return;
+    votes.set(voter, achieved);
+    this.juryVotes.set(key, votes);
+    if (achieved) item.yes += 1;
+    else item.no += 1;
+    item.voters.push(voter);
   }
 
   private juryVerdict(characterId: string, objectiveId: string, final: boolean) {

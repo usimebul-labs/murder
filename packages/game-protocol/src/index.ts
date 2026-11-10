@@ -13,7 +13,10 @@ export const ROOM_NAME = "mystery" as const;
 export interface CreateRoomOptions {
   /** 발행된 시나리오 버전 id (scenario_versions.id) */
   scenarioVersionId: string;
-  /** 미리보기 방 여부. 켜면 최소 인원 없이 시작할 수 있다 (테스트 플레이) */
+  /**
+   * 테스트 방 여부. 켜면 최소 인원 없이 시작할 수 있고,
+   * 시작할 때 남은 빈 자리를 AI 봇 참가자로 채운다 (혼자서도 끝까지 진행해 볼 수 있다)
+   */
   preview?: boolean;
   /** 대기실 목록에 보이는 방 제목 (최대 30자) */
   title?: string;
@@ -48,6 +51,8 @@ export interface RoomListing {
   players: number;
   maxPlayers: number;
   status: "waiting" | "playing";
+  /** 테스트 방 (빈 자리를 AI 봇이 채운다) */
+  test: boolean;
 }
 
 /** 태그 목록을 규칙(허용 값, 쌍 배타, 최대 개수)에 맞게 정리한다 */

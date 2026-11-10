@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Award,
   BookOpen,
+  Bot,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -871,6 +872,11 @@ function RoomsCard({
                         <Crown size={12} aria-hidden /> 내 방
                       </span>
                     )}
+                    {r.test && (
+                      <span className="nm-badge nm-badge--secret nm-badge--sm">
+                        <Bot size={12} aria-hidden /> 테스트
+                      </span>
+                    )}
                   </div>
                   <span className="font-serif text-[15px] font-bold leading-[1.4] [text-wrap:pretty]">
                     {r.title}
@@ -962,6 +968,7 @@ function CreateRoomDialog({
   const [size, setSize] = useState(theme.maxPlayers);
   const [tags, setTags] = useState<RoomTag[]>([]);
   const [visibility, setVisibility] = useState<RoomVisibility>("public");
+  const [test, setTest] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -1007,6 +1014,7 @@ function CreateRoomDialog({
         maxPlayers: size,
         tags,
         visibility,
+        preview: test,
       });
       holdRoom(room);
       onCreated({ code: room.roomId, title: t, visibility });
@@ -1209,6 +1217,20 @@ function CreateRoomDialog({
                   </label>
                 ))}
               </fieldset>
+              <label className="nm-check">
+                <input
+                  type="checkbox"
+                  className="nm-check__box"
+                  checked={test}
+                  onChange={(e) => setTest(e.target.checked)}
+                />
+                <span className="nm-check__text">
+                  테스트 방으로 열기
+                  <span className="nm-check__desc">
+                    시작하면 빈 자리를 AI 봇이 채워요. 혼자서도 사건을 끝까지 진행해 볼 수 있어요.
+                  </span>
+                </span>
+              </label>
               {error && (
                 <p role="alert" className="text-sm text-[var(--destructive-text)]">
                   {error}
