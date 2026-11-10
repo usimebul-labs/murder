@@ -68,6 +68,8 @@ export interface PlayerInfo {
   userId: string;
   nickname: string;
   characterId: string;
+  /** 인물 선택 페이즈에서 지망한 인물 (겹칠 수 있다) */
+  wishId: string;
   ready: boolean;
   done: boolean;
   connected: boolean;

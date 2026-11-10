@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   autoUnlockedClues,
   boardClues,
+  castRoles,
   cluesAtLocation,
   currentRound,
   type GameFacts,
@@ -126,5 +127,56 @@ describe("game-logic", () => {
     const m = scoreCharacter(scenario, margaret, f, () => true);
     expect(m.objectives.map((o) => o.achieved)).toEqual([true, true]);
     expect(m.total).toBe(3);
+  });
+
+  describe("castRoles", () => {
+    const chars = ["a", "b", "c", "d"];
+    /** 정해진 순서로 값을 내는 난수 */
+    const seq = (...values: number[]) => {
+      let i = 0;
+      return () => values[i++ % values.length] ?? 0;
+    };
+
+    it("겹치지 않는 지망은 그대로 배정한다", () => {
+      const { assigned, lotteries } = castRoles(chars, [
+        { key: "p1", wish: "a" },
+        { key: "p2", wish: "b" },
+      ]);
+      expect(assigned.get("p1")).toBe("a");
+      expect(assigned.get("p2")).toBe("b");
+      expect(lotteries).toEqual([]);
+    });
+
+    it("여러 명이 지망하면 추첨으로 한 명을 뽑고, 떨어진 사람은 남은 인물을 맡는다", () => {
+      const wishes = [
+        { key: "p1", wish: "a" },
+        { key: "p2", wish: "a" },
+        { key: "p3", wish: "a" },
+        { key: "p4", wish: "" },
+      ];
+      const { assigned, lotteries } = castRoles(chars, wishes, seq(0.5));
+      expect(assigned.get("p2")).toBe("a");
+      expect(lotteries).toEqual([{ characterId: "a", wishers: ["p1", "p2", "p3"], winner: "p2" }]);
+      const others = ["p1", "p3", "p4"].map((k) => assigned.get(k));
+      expect(new Set(others)).toEqual(new Set(["b", "c", "d"]));
+    });
+
+    it("누구도 같은 인물을 둘이 맡지 않고, 모두 인물을 받는다", () => {
+      for (let n = 0; n < 50; n++) {
+        const wishes = ["p1", "p2", "p3", "p4"].map((key) => ({
+          key,
+          wish: chars[Math.floor(Math.random() * 3)] ?? "",
+        }));
+        const { assigned } = castRoles(chars, wishes);
+        expect(assigned.size).toBe(4);
+        expect(new Set(assigned.values()).size).toBe(4);
+      }
+    });
+
+    it("인물보다 참가자가 많으면 남는 참가자는 배정받지 못한다", () => {
+      const wishes = ["p1", "p2", "p3"].map((key) => ({ key, wish: "a" }));
+      const { assigned } = castRoles(["a", "b"], wishes);
+      expect(assigned.size).toBe(2);
+    });
   });
 });
