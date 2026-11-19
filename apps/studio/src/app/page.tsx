@@ -15,7 +15,7 @@ export default function StudioHome() {
           <li key={s.slug}>
             <Link
               href={`/scenarios/${s.slug}`}
-              className="block rounded-lg border border-border bg-card p-4 hover:border-primary"
+              className="block rounded-lg border border-border bg-card p-4 text-foreground no-underline hover:border-primary"
             >
               <p className="font-semibold">{s.title}</p>
               <p className="font-mono text-xs text-muted-foreground">{s.slug}</p>

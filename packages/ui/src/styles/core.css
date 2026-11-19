@@ -19,7 +19,7 @@
 .nm-btn--accuse:hover:not(:disabled){background:var(--oxblood-500);box-shadow:var(--glow-accused)}
 .nm-btn--link{background:none;height:auto;padding:0;color:var(--primary);text-decoration:underline;text-underline-offset:3px}
 /* IconButton */
-.nm-iconbtn{display:inline-grid;place-items:center;width:44px;height:44px;flex:none;border-radius:var(--radius-md);border:1px solid transparent;background:transparent;color:var(--foreground);cursor:pointer;position:relative;transition:background var(--dur-fast),border-color var(--dur-fast)}
+.nm-iconbtn{display:inline-grid;text-decoration:none;place-items:center;width:44px;height:44px;flex:none;border-radius:var(--radius-md);border:1px solid transparent;background:transparent;color:var(--foreground);cursor:pointer;position:relative;transition:background var(--dur-fast),border-color var(--dur-fast)}
 .nm-iconbtn:hover:not(:disabled){background:var(--accent)}
 .nm-iconbtn:disabled{opacity:0.45;cursor:not-allowed}
 .nm-iconbtn--sm{width:36px;height:36px}
