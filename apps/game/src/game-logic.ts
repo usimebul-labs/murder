@@ -93,23 +93,32 @@ export function autoUnlockedClues(
   );
 }
 
-/** 장소 조사로 얻을 수 있는 단서 */
+/** 이 캐릭터가 아직 갖지 않았고 얻을 수 있는 탐색 단서 (조사가 시작된 뒤에만) */
+function searchableFor(scenario: Scenario, characterId: string, facts: GameFacts): Clue[] {
+  if (facts.round < 1) return [];
+  const owned = facts.owned.get(characterId) ?? new Set<string>();
+  return boardClues(scenario).filter((c) => !owned.has(c.id) && canSee(c, characterId));
+}
+
+/** 장소별 탐색: 이 장소에서 얻을 수 있는 단서 */
 export function cluesAtLocation(
   scenario: Scenario,
   locationId: string,
   characterId: string,
   facts: GameFacts,
 ): Clue[] {
-  const location = scenario.locations.find((l) => l.id === locationId);
-  if (!location || facts.round < location.openFromRound) return [];
-  const owned = facts.owned.get(characterId) ?? new Set<string>();
-  return scenario.clues.filter(
-    (c) =>
-      c.distribution === "search" &&
-      c.locationId === locationId &&
-      !owned.has(c.id) &&
-      canSee(c, characterId) &&
-      isUnlocked(c, facts),
+  return searchableFor(scenario, characterId, facts).filter((c) => c.locationId === locationId);
+}
+
+/** 인물별 탐색: 이 인물과 관련된 단서 */
+export function cluesAboutCharacter(
+  scenario: Scenario,
+  aboutCharacterId: string,
+  characterId: string,
+  facts: GameFacts,
+): Clue[] {
+  return searchableFor(scenario, characterId, facts).filter((c) =>
+    c.characterIds.includes(aboutCharacterId),
   );
 }
 
@@ -140,19 +149,13 @@ export function pickEnding(scenario: Scenario, facts: GameFacts): Ending {
 }
 
 /**
- * 보드에 나와 있어야 하는 탐색 단서: 장소가 열렸고 해금 조건을 만족한 search 단서.
- * 누가 이미 가져갔는지와 상관없이 돌려준다 (카드는 한 번 나오면 보드에 남는다).
+ * 단서 보드의 탐색 단서. 탐색 단계별로 나누지 않고 처음부터 모두 나온다.
+ * 누가 이미 가져갔는지와 상관없이 돌려준다 (카드는 가져가도 보드에 남는다).
+ * 단계별로는 수집 개수(pointsPerPlayer)만 제한한다.
  */
-export function boardClues(scenario: Scenario, facts: GameFacts): Clue[] {
-  const open = new Set(
-    scenario.locations.filter((l) => facts.round >= l.openFromRound).map((l) => l.id),
-  );
+export function boardClues(scenario: Scenario): Clue[] {
   return scenario.clues.filter(
-    (c) =>
-      c.distribution === "search" &&
-      !!c.locationId &&
-      open.has(c.locationId) &&
-      isUnlocked(c, facts),
+    (c) => c.distribution === "search" && (!!c.locationId || c.characterIds.length > 0),
   );
 }
 

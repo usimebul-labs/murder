@@ -162,21 +162,20 @@ function checkRules(s: Scenario): ScenarioIssue[] {
     if (clue.visibility.kind === "characters") {
       for (const cid of clue.visibility.characterIds) refCharacter(cid, `${path}.visibility`);
     }
+    for (const cid of clue.characterIds) refCharacter(cid, `${path}.characterIds`);
     if (clue.distribution === "search") {
-      if (!clue.locationId) add(`${path}.locationId`, "조사로 얻는 단서에 장소가 없습니다");
-      else if (!locationIds.has(clue.locationId))
+      if (!clue.locationId && clue.characterIds.length === 0)
+        add(`${path}.locationId`, "탐색 단서에 장소도 관련 인물도 없습니다");
+      if (clue.locationId && !locationIds.has(clue.locationId))
         add(`${path}.locationId`, `없는 장소를 참조합니다: ${clue.locationId}`);
-      else {
-        const loc = s.locations.find((l) => l.id === clue.locationId);
-        if (loc && loc.openFromRound > clue.unlock.fromRound)
-          add(
-            `${path}.unlock.fromRound`,
-            `${clue.unlock.fromRound}라운드에는 ${loc.name}이(가) 아직 닫혀 있습니다`,
-          );
-      }
-    }
-    if (clue.unlock.fromRound > Math.max(1, maxRound))
+      if (clue.unlock.fromRound > 1 || clue.unlock.when)
+        add(
+          `${path}.unlock`,
+          "탐색 단서는 처음부터 보드에 모두 나오므로 해금 조건을 둘 수 없습니다",
+        );
+    } else if (clue.unlock.fromRound > Math.max(1, maxRound)) {
       add(`${path}.unlock.fromRound`, `${clue.unlock.fromRound}라운드는 페이즈에 없습니다`);
+    }
     walk(clue.unlock.when, `${path}.unlock.when`);
     for (const req of clueDeps(clue))
       if (req === clue.id) add(`${path}.unlock.when`, "자기 자신을 요구합니다");

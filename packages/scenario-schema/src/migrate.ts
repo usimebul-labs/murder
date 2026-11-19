@@ -4,6 +4,7 @@ import { SCHEMA_VERSION } from "./schema.js";
 const migrations: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {
   1: migrateV1toV2,
   2: migrateV2toV3,
+  3: migrateV3toV4,
 };
 
 type Raw = Record<string, unknown>;
@@ -128,6 +129,28 @@ function migrateV2toV3(raw: Raw): Raw {
         ...c,
         script: { ...script, story: Array.isArray(script.story) ? script.story : [] },
       };
+    }),
+  };
+}
+
+/**
+ * v3 → v4
+ * - 탐색 단서를 단계별로 나누지 않는다: 장소의 openFromRound와 탐색(search) 단서의 unlock을 없앤다.
+ *   모든 탐색 단서가 처음부터 보드에 나오고, 단계별로는 수집 개수(pointsPerPlayer)만 제한한다.
+ * - 단서에 관련 인물(characterIds)을 추가한다. 기존 시나리오는 빈 목록으로 시작한다.
+ */
+function migrateV3toV4(raw: Raw): Raw {
+  return {
+    ...raw,
+    schemaVersion: 4,
+    locations: arr(raw.locations).map(({ openFromRound: _open, ...l }) => l),
+    clues: arr(raw.clues).map((c) => {
+      const characterIds = Array.isArray(c.characterIds) ? c.characterIds : [];
+      if (c.distribution !== "search" && c.distribution !== undefined) {
+        return { ...c, characterIds };
+      }
+      const { unlock: _unlock, ...rest } = c;
+      return { ...rest, characterIds };
     }),
   };
 }

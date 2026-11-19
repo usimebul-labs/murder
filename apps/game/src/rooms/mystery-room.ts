@@ -701,8 +701,14 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
         category: clue.category,
         source: clue.source,
         locationId: clue.locationId ?? "",
-        round: Math.max(1, currentRound(this.scenario, this.state.phaseIndex)),
+        distribution: clue.distribution,
+        // 탐색 단서는 수집될 때 그 라운드를 적는다
+        round:
+          clue.distribution === "search"
+            ? 0
+            : Math.max(1, currentRound(this.scenario, this.state.phaseIndex)),
       });
+      for (const id of clue.characterIds) card.characterIds.push(id);
       this.state.cards.set(clue.id, card);
     }
     return card;
@@ -757,7 +763,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
           }
         }
       }
-      for (const clue of boardClues(this.scenario, this.facts())) {
+      for (const clue of boardClues(this.scenario)) {
         if (!this.state.cards.has(clue.id)) {
           this.ensureCard(clue);
           changed = true;
@@ -769,7 +775,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
 
   /** 이 캐릭터가 지금 보드에서 가져갈 수 있는 단서 */
   private availableFor(characterId: string): Clue[] {
-    return boardClues(this.scenario, this.facts()).filter((c) => {
+    return boardClues(this.scenario).filter((c) => {
       const card = this.state.cards.get(c.id);
       return (!card || (!card.holderId && !card.isPublic)) && canSee(c, characterId);
     });
@@ -841,11 +847,17 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
 
   private pick(characterId: string, clue: Clue, auto = false) {
     this.giveClue(characterId, clue, "search");
+    this.ensureCard(clue).round = Math.max(1, currentRound(this.scenario, this.state.phaseIndex));
     const player = this.playerByCharacter(characterId);
     if (player && player.picksLeft > 0) player.picksLeft -= 1;
-    const place = this.scenario.locations.find((l) => l.id === clue.locationId)?.name ?? "";
+    const place = this.scenario.locations.find((l) => l.id === clue.locationId)?.name;
+    const where = place
+      ? `${place}에서 `
+      : clue.characterIds.length > 0
+        ? `${this.characterName(clue.characterIds[0] ?? "")} 관련 단서 중 `
+        : "";
     this.announce(
-      `${josa(this.characterName(characterId), "이/가")} ${place}에서 ${josa(clue.code, "을/를")} ${auto ? "무작위로 " : ""}수집했습니다`,
+      `${josa(this.characterName(characterId), "이/가")} ${where}${josa(clue.code, "을/를")} ${auto ? "무작위로 " : ""}수집했습니다`,
     );
     this.distribute();
     this.nextTurn();

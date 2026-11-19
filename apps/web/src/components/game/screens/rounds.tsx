@@ -7,6 +7,7 @@ import {
   Gift,
   Hourglass,
   LayoutGrid,
+  MapPin,
   MessagesSquare,
   Mic,
   MicOff,
@@ -115,7 +116,9 @@ function HolderTag({ ctx, card }: { ctx: GameContext; card: ClueCardInfo }) {
 export function Explore({ ctx }: { ctx: GameContext }) {
   const { state, phase, scenario, myCharacterId } = ctx;
   const { cards, clues, mine } = useClues(ctx);
+  const [mode, setMode] = useState<"place" | "person">("place");
   const [location, setLocation] = useState("all");
+  const [person, setPerson] = useState("all");
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<ClueCardInfo | null>(null);
   const [showMap, setShowMap] = useState(true);
@@ -125,15 +128,33 @@ export function Explore({ ctx }: { ctx: GameContext }) {
   const turnCharacter = ctx.character(state.turnCharacterId);
   const tone = phaseTone("investigation");
 
-  const searchCards = cards.filter((c) => c.locationId);
+  // 탐색 단서는 단계별로 나누지 않고 모두 보드에 나온다. 단계마다 수집 개수만 정해져 있다
+  const searchCards = cards.filter((c) => c.distribution === "search");
   const counts: Record<string, number> = {};
-  for (const c of searchCards)
-    if (!c.holderId) counts[c.locationId] = (counts[c.locationId] ?? 0) + 1;
+  const personCounts: Record<string, number> = {};
+  for (const c of searchCards) {
+    if (c.holderId) continue;
+    if (c.locationId) counts[c.locationId] = (counts[c.locationId] ?? 0) + 1;
+    for (const id of c.characterIds) personCounts[id] = (personCounts[id] ?? 0) + 1;
+  }
+  const people = state.characters.filter((c) =>
+    searchCards.some((x) => x.characterIds.includes(c.id)),
+  );
   const visible = searchCards
-    .filter((c) => location === "all" || c.locationId === location)
+    .filter((c) =>
+      mode === "place"
+        ? location === "all" || c.locationId === location
+        : person === "all" || c.characterIds.includes(person),
+    )
     .sort((a, b) => Number(!!a.holderId) - Number(!!b.holderId) || a.code.localeCompare(b.code));
   const remaining = searchCards.filter((c) => !c.holderId).length;
   const seats = [...new Set(state.turnOrder)];
+  const perPlayer = seats.length ? Math.round(state.turnTotal / seats.length) : 0;
+  const filterTab = (active: boolean) =>
+    cn(
+      "inline-flex h-9 flex-none items-center gap-1.5 rounded-[3px] px-3 text-sm font-semibold text-muted-foreground",
+      active && "bg-accent text-foreground",
+    );
   const lap = seats.length ? Math.floor(Math.max(0, state.turnNumber - 1) / seats.length) + 1 : 1;
 
   return (
@@ -230,50 +251,126 @@ export function Explore({ ctx }: { ctx: GameContext }) {
                   EVIDENCE BOARD · 남은 카드 {remaining}/{searchCards.length}
                 </Eyebrow>
                 <h2 className="mt-1 font-serif text-2xl font-bold">단서 보드</h2>
+                {perPlayer > 0 && (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    이번 탐색에서는 한 사람당 {perPlayer}장까지 수집할 수 있어요.
+                  </p>
+                )}
               </div>
-              <MapToggle show={showMap} onToggle={() => setShowMap((v) => !v)} />
-            </div>
-            {showMap && (
-              <FloorPlan
-                ctx={ctx}
-                selected={location}
-                onSelect={setLocation}
-                counts={counts}
-                round={round}
-              />
-            )}
-            <div
-              className="flex gap-1 overflow-x-auto rounded-md border border-border bg-[var(--input-bg)] p-[3px]"
-              role="tablist"
-            >
-              {[{ id: "all", name: "전체" }, ...(scenario?.locations ?? [])].map((l) => {
-                const open =
-                  l.id === "all" ||
-                  round >= (scenario?.locations.find((x) => x.id === l.id)?.openFromRound ?? 1);
-                const n = l.id === "all" ? remaining : (counts[l.id] ?? 0);
-                return (
+              <div className="flex items-center gap-2">
+                <div
+                  className="flex gap-1 rounded-md border border-border bg-[var(--input-bg)] p-[3px]"
+                  role="tablist"
+                  aria-label="탐색 방식"
+                >
                   <button
-                    key={l.id}
                     type="button"
                     role="tab"
-                    disabled={!open}
-                    aria-selected={location === l.id}
-                    onClick={() => setLocation(l.id)}
-                    className={cn(
-                      "inline-flex h-9 flex-none items-center gap-1.5 rounded-[3px] px-3 text-sm font-semibold text-muted-foreground disabled:opacity-40",
-                      location === l.id && "bg-accent text-foreground",
-                    )}
+                    aria-selected={mode === "place"}
+                    onClick={() => setMode("place")}
+                    className={filterTab(mode === "place")}
                   >
-                    {l.name}
-                    <span className="rounded-full bg-muted px-1.5 font-mono text-[11px]">{n}</span>
+                    <MapPin size={14} aria-hidden /> 장소별
                   </button>
-                );
-              })}
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={mode === "person"}
+                    onClick={() => setMode("person")}
+                    className={filterTab(mode === "person")}
+                  >
+                    <Users size={14} aria-hidden /> 인물별
+                  </button>
+                </div>
+                {mode === "place" && (
+                  <MapToggle show={showMap} onToggle={() => setShowMap((v) => !v)} />
+                )}
+              </div>
             </div>
-            {location !== "all" && (
-              <p className="text-sm text-muted-foreground">
-                {scenario?.locations.find((l) => l.id === location)?.description}
-              </p>
+            {mode === "place" ? (
+              <>
+                {showMap && (
+                  <FloorPlan ctx={ctx} selected={location} onSelect={setLocation} counts={counts} />
+                )}
+                <div
+                  className="flex gap-1 overflow-x-auto rounded-md border border-border bg-[var(--input-bg)] p-[3px]"
+                  role="tablist"
+                  aria-label="장소"
+                >
+                  {[{ id: "all", name: "전체" }, ...(scenario?.locations ?? [])].map((l) => (
+                    <button
+                      key={l.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={location === l.id}
+                      onClick={() => setLocation(l.id)}
+                      className={filterTab(location === l.id)}
+                    >
+                      {l.name}
+                      <span className="rounded-full bg-muted px-1.5 font-mono text-[11px]">
+                        {l.id === "all" ? remaining : (counts[l.id] ?? 0)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {location !== "all" && (
+                  <p className="text-sm text-muted-foreground">
+                    {scenario?.locations.find((l) => l.id === location)?.description}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <ul
+                  className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4"
+                  aria-label="인물"
+                >
+                  {[undefined, ...people].map((c) => {
+                    const id = c?.id ?? "all";
+                    const active = person === id;
+                    return (
+                      <li key={id}>
+                        <button
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => setPerson(active && c ? "all" : id)}
+                          className={cn(
+                            "flex w-full items-center gap-2.5 rounded-[6px] border px-3 py-2 text-left transition-colors hover:bg-accent",
+                            active
+                              ? "border-primary bg-[var(--clue-surface)]"
+                              : "border-border bg-background",
+                          )}
+                        >
+                          {c ? (
+                            <Avatar character={c} size={30} />
+                          ) : (
+                            <span className="grid size-[30px] flex-none place-items-center rounded-full bg-muted">
+                              <LayoutGrid size={14} aria-hidden />
+                            </span>
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold">
+                              {c ? c.name : "전체"}
+                              {c?.id === myCharacterId && " (나)"}
+                            </span>
+                            <span className="block truncate text-[11px] text-muted-foreground">
+                              {c ? c.role : "모든 인물"}
+                            </span>
+                          </span>
+                          <span className="rounded-full bg-muted px-1.5 font-mono text-[11px]">
+                            {c ? (personCounts[c.id] ?? 0) : remaining}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {person !== "all" && (
+                  <p className="text-sm text-muted-foreground">
+                    {ctx.character(person)?.name} 관련 단서예요. 카드에 적힌 출처에서 발견돼요.
+                  </p>
+                )}
+              </>
             )}
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
               {visible.map((card) => {
@@ -298,7 +395,9 @@ export function Explore({ ctx }: { ctx: GameContext }) {
               })}
               {visible.length === 0 && (
                 <li className="col-span-full py-10 text-center text-sm text-muted-foreground">
-                  아직 발견되지 않은 증거
+                  {mode === "person"
+                    ? "이 인물과 관련된 단서가 없어요"
+                    : "이 장소에는 단서가 없어요"}
                 </li>
               )}
             </ul>
