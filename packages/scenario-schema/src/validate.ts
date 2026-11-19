@@ -142,6 +142,10 @@ function checkRules(s: Scenario): ScenarioIssue[] {
     for (const r of c.script.relationships)
       refCharacter(r.characterId, `characters.${i}.script.relationships`);
     dupes(
+      c.script.story.map((ch) => ch.id),
+      `characters.${i}.script.story`,
+    );
+    dupes(
       c.objectives.map((o) => o.id),
       `characters.${i}.objectives`,
     );

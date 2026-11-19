@@ -3,6 +3,7 @@ import { SCHEMA_VERSION } from "./schema.js";
 /** 버전 N → N+1 변환 함수 목록. 형식을 바꿀 때 여기에 추가한다. */
 const migrations: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {
   1: migrateV1toV2,
+  2: migrateV2toV3,
 };
 
 type Raw = Record<string, unknown>;
@@ -110,6 +111,24 @@ function migrateV1toV2(raw: Raw): Raw {
     clues,
     phases: nextPhases,
     endings,
+  };
+}
+
+/**
+ * v2 → v3
+ * - 캐릭터 비밀 문서에 서술형 이야기(script.story) 추가. 기존 시나리오는 빈 목록으로 시작한다.
+ */
+function migrateV2toV3(raw: Raw): Raw {
+  return {
+    ...raw,
+    schemaVersion: 3,
+    characters: arr(raw.characters).map((c) => {
+      const script = (c.script ?? {}) as Raw;
+      return {
+        ...c,
+        script: { ...script, story: Array.isArray(script.story) ? script.story : [] },
+      };
+    }),
   };
 }
 
