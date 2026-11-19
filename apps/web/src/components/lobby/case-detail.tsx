@@ -20,10 +20,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  CircleCheck,
   Coffee,
-  Copy,
-  Crown,
   DoorClosed,
   DoorOpen,
   Drama,
@@ -60,7 +57,7 @@ import {
   useState,
 } from "react";
 import { createGameClient, listRooms } from "@/lib/game-client";
-import { dropHeldRoom, holdRoom } from "@/lib/room-handoff";
+import { holdRoom } from "@/lib/room-handoff";
 import { playPath, type Theme, type ThemeDetail, type ThemePhase } from "@/lib/theme";
 import { resolveRoomCode } from "./invite";
 import { Cover, ThemeBadges } from "./theme-meta";
@@ -140,9 +137,6 @@ const STATUS_META = {
   playing: { label: "진행 중", tone: "nm-badge--discuss", icon: Hourglass },
 } as const;
 
-/** 내가 만든 방. 대기실 화면으로 넘어가기 전까지 이 화면이 연결을 쥐고 있다 */
-type MyRoom = { code: string; title: string; visibility: RoomVisibility };
-
 export function CaseDetail({
   theme,
   detail,
@@ -158,21 +152,10 @@ export function CaseDetail({
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("prologue");
   const [createOpen, setCreateOpen] = useState(false);
-  const [mine, setMine] = useState<MyRoom | null>(null);
-  // 대기실로 넘기지 않은 내 방. 렌더와 무관하게 유지해야 화면을 떠날 때 넘긴 방을 끊지 않는다
-  const heldRef = useRef<string | null>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
   const [tabsH, setTabsH] = useState(44);
   const rooms = useRooms(theme.scenarioVersionId);
   const play = playPath(theme);
-
-  // 대기실에 들어가지 않고 이 화면을 떠나면 만들어 둔 방에서 나간다
-  useEffect(
-    () => () => {
-      if (heldRef.current) dropHeldRoom(heldRef.current);
-    },
-    [],
-  );
 
   useEffect(() => {
     const el = tabsRef.current;
@@ -184,7 +167,6 @@ export function CaseDetail({
 
   const loginHref = `/login?next=${encodeURIComponent(`/cases/${theme.id}`)}`;
   const enterRoom = (code: string, scenarioVersionId: string) => {
-    if (heldRef.current === code) heldRef.current = null;
     router.push(`/play/${scenarioVersionId}?room=${encodeURIComponent(code)}`);
   };
   const openCreate = () => (needsLogin ? router.push(loginHref) : setCreateOpen(true));
@@ -262,7 +244,6 @@ export function CaseDetail({
           <RoomsCard
             playable={!!play}
             rooms={rooms}
-            mine={mine}
             needsLogin={needsLogin}
             loginHref={loginHref}
             onCreate={openCreate}
@@ -275,16 +256,7 @@ export function CaseDetail({
         <CreateRoomDialog
           theme={theme}
           scenarioVersionId={theme.scenarioVersionId}
-          mine={mine}
-          onCreated={(r) => {
-            heldRef.current = r.code;
-            setMine(r);
-            void rooms.refresh();
-          }}
-          onEnter={(code) => {
-            setCreateOpen(false);
-            enterRoom(code, theme.scenarioVersionId as string);
-          }}
+          onCreated={(code) => enterRoom(code, theme.scenarioVersionId as string)}
           onClose={() => setCreateOpen(false)}
         />
       )}
@@ -767,7 +739,6 @@ function InviteCard({ needsLogin, loginHref }: { needsLogin: boolean; loginHref:
 function RoomsCard({
   playable,
   rooms: { rooms, loaded, offline },
-  mine,
   needsLogin,
   loginHref,
   onCreate,
@@ -775,7 +746,6 @@ function RoomsCard({
 }: {
   playable: boolean;
   rooms: ReturnType<typeof useRooms>;
-  mine: MyRoom | null;
   needsLogin: boolean;
   loginHref: string;
   onCreate: () => void;
@@ -786,11 +756,7 @@ function RoomsCard({
   const [joining, setJoining] = useState<string | null>(null);
 
   const isOpen = (r: RoomListing) => r.status === "waiting" && r.players < r.maxPlayers;
-  // 내 방을 맨 위에 둔다
-  const sorted = [...rooms].sort(
-    (a, b) => Number(b.code === mine?.code) - Number(a.code === mine?.code),
-  );
-  const shown = onlyOpen ? sorted.filter((r) => isOpen(r) || r.code === mine?.code) : sorted;
+  const shown = onlyOpen ? rooms.filter(isOpen) : rooms;
 
   const createBtn = (variant: "secondary" | "outline") =>
     playable ? (
@@ -849,29 +815,22 @@ function RoomsCard({
         aria-busy={playable && !loaded}
       >
         {shown.map((r, i) => {
-          const own = r.code === mine?.code;
           const open = isOpen(r);
           const st =
             STATUS_META[r.status === "waiting" && r.players >= r.maxPlayers ? "full" : r.status];
-          const label = own ? "입장" : open ? "참가" : r.status === "playing" ? "진행 중" : "마감";
+          const label = open ? "참가" : r.status === "playing" ? "진행 중" : "마감";
           return (
             <li
               key={r.code}
               className={cn(
                 "flex flex-col gap-2.5 px-[18px] py-3.5",
                 i > 0 && "border-t border-border",
-                own && "bg-[color-mix(in_oklch,var(--primary)_6%,transparent)]",
               )}
             >
               <div className="flex items-start justify-between gap-2.5">
                 <div className="flex min-w-0 flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-xs text-muted-foreground">{r.code}</span>
-                    {own && (
-                      <span className="nm-badge nm-badge--primary nm-badge--sm">
-                        <Crown size={12} aria-hidden /> 내 방
-                      </span>
-                    )}
                     {r.test && (
                       <span className="nm-badge nm-badge--secret nm-badge--sm">
                         <Bot size={12} aria-hidden /> 테스트
@@ -909,12 +868,11 @@ function RoomsCard({
                   type="button"
                   className={cn(
                     "nm-btn nm-btn--sm flex-none",
-                    open || own ? "nm-btn--primary" : "nm-btn--ghost",
+                    open ? "nm-btn--primary" : "nm-btn--ghost",
                   )}
-                  disabled={(!open && !own) || joining === r.code}
+                  disabled={!open || joining === r.code}
                   aria-busy={joining === r.code}
                   onClick={() => {
-                    if (own) return onEnter(r.code, r.scenarioVersionId);
                     if (needsLogin) return router.push(loginHref);
                     setJoining(r.code);
                     onEnter(r.code, r.scenarioVersionId);
@@ -951,16 +909,13 @@ function RoomsCard({
 function CreateRoomDialog({
   theme,
   scenarioVersionId,
-  mine,
   onCreated,
-  onEnter,
   onClose,
 }: {
   theme: Theme;
   scenarioVersionId: string;
-  mine: MyRoom | null;
-  onCreated: (room: MyRoom) => void;
-  onEnter: (code: string) => void;
+  /** 방을 만들면 바로 대기실로 들어간다 */
+  onCreated: (code: string) => void;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState("");
@@ -971,9 +926,7 @@ function CreateRoomDialog({
   const [test, setTest] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const done = !!mine;
 
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
@@ -1017,7 +970,7 @@ function CreateRoomDialog({
         preview: test,
       });
       holdRoom(room);
-      onCreated({ code: room.roomId, title: t, visibility });
+      onCreated(room.roomId);
     } catch (err) {
       setError(
         err instanceof Error && err.message.includes("로그인")
@@ -1027,13 +980,6 @@ function CreateRoomDialog({
     } finally {
       setCreating(false);
     }
-  };
-
-  const copy = () => {
-    if (!mine) return;
-    navigator.clipboard?.writeText(mine.code).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
   };
 
   const sizes: number[] = [];
@@ -1058,16 +1004,12 @@ function CreateRoomDialog({
         style={{ "--dialog-w": "480px" } as CSSProperties}
       >
         <div className="nm-dialog__header">
-          <span className="nm-dialog__eyebrow">{done ? "ROOM OPENED" : "NEW ROOM"}</span>
+          <span className="nm-dialog__eyebrow">NEW ROOM</span>
           <h2 id="create-room-title" className="nm-dialog__title">
-            {done ? "방이 열렸습니다" : "새 방을 엽니다"}
+            새 방을 엽니다
           </h2>
           <p id="create-room-desc" className="nm-dialog__desc">
-            {!mine
-              ? theme.title
-              : mine.visibility === "public"
-                ? "대기실 목록에 공개되었어요. 아래 코드로 친구를 초대하세요."
-                : "비공개 방이에요. 아래 코드를 받은 사람만 들어올 수 있어요."}
+            {theme.title}
           </p>
         </div>
         <button
@@ -1079,178 +1021,147 @@ function CreateRoomDialog({
           <X size={20} aria-hidden />
         </button>
         <div className="nm-dialog__body">
-          {mine ? (
-            <div className="flex flex-col gap-[18px]">
-              <div className="flex flex-col items-center gap-2 rounded-[6px] bg-[var(--paper-surface)] px-4 py-[22px] text-[var(--paper-ink)]">
-                <span className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-[var(--paper-ink-muted)]">
-                  INVITE CODE
-                </span>
-                <span className="font-mono text-[clamp(26px,6vw,34px)] font-bold leading-[1.1] tracking-[0.08em]">
-                  {mine.code}
-                </span>
-              </div>
-              <div className="flex flex-wrap justify-end gap-2">
-                <button type="button" className="nm-btn nm-btn--outline" onClick={copy}>
-                  {copied ? <CircleCheck size={16} aria-hidden /> : <Copy size={16} aria-hidden />}
-                  {copied ? "복사됨" : "코드 복사"}
-                </button>
-                <button
-                  type="button"
-                  className="nm-btn nm-btn--primary"
-                  onClick={() => onEnter(mine.code)}
-                >
-                  <DoorOpen size={16} aria-hidden /> 대기실 입장
-                </button>
-              </div>
-              <span className="sr-only" aria-live="polite">
-                {copied ? "초대 코드를 복사했어요." : ""}
-              </span>
-            </div>
-          ) : (
-            <form onSubmit={submit} noValidate className="flex flex-col gap-[18px]">
-              <div className="nm-field">
-                <label htmlFor="room-title" className="nm-field__label">
-                  방 제목
-                </label>
-                <input
-                  id="room-title"
-                  className="nm-input"
-                  placeholder="예: 초보 환영, 천천히 진행해요"
-                  maxLength={MAX_ROOM_TITLE}
-                  value={title}
-                  aria-invalid={!!titleErr}
-                  aria-describedby={titleErr ? "room-title-error" : undefined}
-                  onChange={(e) => {
-                    setTitle(e.target.value);
-                    setTitleErr(null);
-                  }}
-                />
-                {titleErr && (
-                  <span id="room-title-error" className="nm-field__hint nm-field__hint--error">
-                    {titleErr}
-                  </span>
-                )}
-              </div>
-              {theme.minPlayers !== theme.maxPlayers && (
-                <div className="nm-field">
-                  <label htmlFor="room-size" className="nm-field__label">
-                    인원
-                  </label>
-                  <div className="nm-select-wrap">
-                    <select
-                      id="room-size"
-                      className="nm-input nm-select"
-                      value={size}
-                      aria-describedby="room-size-hint"
-                      onChange={(e) => setSize(Number(e.target.value))}
-                    >
-                      {sizes.map((n) => (
-                        <option key={n} value={n}>
-                          {n}인
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={16} className="nm-icon" aria-hidden />
-                  </div>
-                  <span id="room-size-hint" className="nm-field__hint">
-                    인원이 모두 모이면 캐릭터 선택이 시작돼요.
-                  </span>
-                </div>
-              )}
-              <fieldset className="m-0 flex min-w-0 flex-col gap-2.5 border-0 p-0">
-                <legend className="mb-2.5 p-0 text-[13px] font-semibold">
-                  방 성격{" "}
-                  <span className="font-normal text-muted-foreground">
-                    · 최대 {MAX_ROOM_TAGS}개
-                  </span>
-                </legend>
-                <div className="flex flex-wrap gap-2">
-                  {ROOM_TAGS.map((key) => {
-                    const m = TAG_META[key];
-                    const on = tags.includes(key);
-                    const off = !on && tags.length >= MAX_ROOM_TAGS;
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        aria-pressed={on}
-                        disabled={off}
-                        onClick={() => toggleTag(key)}
-                        className={cn(
-                          "inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-sm transition-[background,border-color] duration-[140ms] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
-                          on
-                            ? "border-primary bg-[color-mix(in_oklch,var(--primary)_18%,transparent)]"
-                            : "border-border-strong bg-transparent",
-                          off ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer",
-                        )}
-                      >
-                        <m.icon size={14} aria-hidden />
-                        {m.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  초보 환영·경험자, 음성 채팅·채팅 전용은 하나만 고를 수 있어요.
-                </span>
-              </fieldset>
-              <fieldset className="nm-radiogroup">
-                <legend>공개 범위</legend>
-                {(
-                  [
-                    ["public", "공개", "대기실 목록에 표시되어 누구나 참가할 수 있어요."],
-                    ["private", "비공개", "초대 코드를 받은 사람만 들어올 수 있어요."],
-                  ] as const
-                ).map(([value, label, desc]) => (
-                  <label key={value} className="nm-check">
-                    <input
-                      type="radio"
-                      name="visibility"
-                      className="nm-check__box nm-check__box--radio"
-                      checked={visibility === value}
-                      onChange={() => setVisibility(value)}
-                    />
-                    <span className="nm-check__text">
-                      {label}
-                      <span className="nm-check__desc">{desc}</span>
-                    </span>
-                  </label>
-                ))}
-              </fieldset>
-              <label className="nm-check">
-                <input
-                  type="checkbox"
-                  className="nm-check__box"
-                  checked={test}
-                  onChange={(e) => setTest(e.target.checked)}
-                />
-                <span className="nm-check__text">
-                  테스트 방으로 열기
-                  <span className="nm-check__desc">
-                    시작하면 빈 자리를 AI 봇이 채워요. 혼자서도 사건을 끝까지 진행해 볼 수 있어요.
-                  </span>
-                </span>
+          <form onSubmit={submit} noValidate className="flex flex-col gap-[18px]">
+            <div className="nm-field">
+              <label htmlFor="room-title" className="nm-field__label">
+                방 제목
               </label>
-              {error && (
-                <p role="alert" className="text-sm text-[var(--destructive-text)]">
-                  {error}
-                </p>
+              <input
+                id="room-title"
+                className="nm-input"
+                placeholder="예: 초보 환영, 천천히 진행해요"
+                maxLength={MAX_ROOM_TITLE}
+                value={title}
+                aria-invalid={!!titleErr}
+                aria-describedby={titleErr ? "room-title-error" : undefined}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setTitleErr(null);
+                }}
+              />
+              {titleErr && (
+                <span id="room-title-error" className="nm-field__hint nm-field__hint--error">
+                  {titleErr}
+                </span>
               )}
-              <div className="flex justify-end gap-2 pt-1">
-                <button type="button" className="nm-btn nm-btn--ghost" onClick={onClose}>
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="nm-btn nm-btn--primary"
-                  aria-busy={creating}
-                  disabled={creating}
-                >
-                  {creating && <Spinner />}방 만들기
-                </button>
+            </div>
+            {theme.minPlayers !== theme.maxPlayers && (
+              <div className="nm-field">
+                <label htmlFor="room-size" className="nm-field__label">
+                  인원
+                </label>
+                <div className="nm-select-wrap">
+                  <select
+                    id="room-size"
+                    className="nm-input nm-select"
+                    value={size}
+                    aria-describedby="room-size-hint"
+                    onChange={(e) => setSize(Number(e.target.value))}
+                  >
+                    {sizes.map((n) => (
+                      <option key={n} value={n}>
+                        {n}인
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="nm-icon" aria-hidden />
+                </div>
+                <span id="room-size-hint" className="nm-field__hint">
+                  인원이 모두 모이면 캐릭터 선택이 시작돼요.
+                </span>
               </div>
-            </form>
-          )}
+            )}
+            <fieldset className="m-0 flex min-w-0 flex-col gap-2.5 border-0 p-0">
+              <legend className="mb-2.5 p-0 text-[13px] font-semibold">
+                방 성격{" "}
+                <span className="font-normal text-muted-foreground">· 최대 {MAX_ROOM_TAGS}개</span>
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {ROOM_TAGS.map((key) => {
+                  const m = TAG_META[key];
+                  const on = tags.includes(key);
+                  const off = !on && tags.length >= MAX_ROOM_TAGS;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={on}
+                      disabled={off}
+                      onClick={() => toggleTag(key)}
+                      className={cn(
+                        "inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-sm transition-[background,border-color] duration-[140ms] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                        on
+                          ? "border-primary bg-[color-mix(in_oklch,var(--primary)_18%,transparent)]"
+                          : "border-border-strong bg-transparent",
+                        off ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer",
+                      )}
+                    >
+                      <m.icon size={14} aria-hidden />
+                      {m.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <span className="text-sm text-muted-foreground">
+                초보 환영·경험자, 음성 채팅·채팅 전용은 하나만 고를 수 있어요.
+              </span>
+            </fieldset>
+            <fieldset className="nm-radiogroup">
+              <legend>공개 범위</legend>
+              {(
+                [
+                  ["public", "공개", "대기실 목록에 표시되어 누구나 참가할 수 있어요."],
+                  ["private", "비공개", "초대 코드를 받은 사람만 들어올 수 있어요."],
+                ] as const
+              ).map(([value, label, desc]) => (
+                <label key={value} className="nm-check">
+                  <input
+                    type="radio"
+                    name="visibility"
+                    className="nm-check__box nm-check__box--radio"
+                    checked={visibility === value}
+                    onChange={() => setVisibility(value)}
+                  />
+                  <span className="nm-check__text">
+                    {label}
+                    <span className="nm-check__desc">{desc}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            <label className="nm-check">
+              <input
+                type="checkbox"
+                className="nm-check__box"
+                checked={test}
+                onChange={(e) => setTest(e.target.checked)}
+              />
+              <span className="nm-check__text">
+                테스트 방으로 열기
+                <span className="nm-check__desc">
+                  시작하면 빈 자리를 AI 봇이 채워요. 혼자서도 사건을 끝까지 진행해 볼 수 있어요.
+                </span>
+              </span>
+            </label>
+            {error && (
+              <p role="alert" className="text-sm text-[var(--destructive-text)]">
+                {error}
+              </p>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" className="nm-btn nm-btn--ghost" onClick={onClose}>
+                취소
+              </button>
+              <button
+                type="submit"
+                className="nm-btn nm-btn--primary"
+                aria-busy={creating}
+                disabled={creating}
+              >
+                {creating && <Spinner />}방 만들기
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
