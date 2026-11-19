@@ -5,11 +5,15 @@ import { Lock, Megaphone, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Avatar } from "./primitives";
 import type { ChatMessage, GameContext } from "./types";
+import { myWhisper, WhisperBar, WhisperNotice, whisperNames } from "./whisper";
 
 const time = (ms: number) =>
   new Date(ms).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-/** 대화 기록 + 입력창. 밀담이 열린 페이즈에서는 상대를 골라 귓속말을 보낼 수 있다 */
+/**
+ * 대화 기록 + 입력창. 밀담이 열린 페이즈에서는 위에 밀담 막대가 붙고,
+ * 밀담에 들어가 있으면 전체/밀담 중 어디로 보낼지 고를 수 있다
+ */
 export function ChatPanel({
   ctx,
   title = "대화",
@@ -23,25 +27,29 @@ export function ChatPanel({
   className?: string;
   readOnly?: boolean;
 }) {
-  const { chat, phase, myCharacterId, state } = ctx;
+  const { chat, phase, myCharacterId } = ctx;
   const [text, setText] = useState("");
-  const [target, setTarget] = useState<string>("all");
+  const [target, setTarget] = useState<"all" | "whisper">("all");
   const endRef = useRef<HTMLDivElement>(null);
-  const whisperOpen = !!phase?.allowWhisper && !!myCharacterId;
-  const channel = whisperOpen && target !== "all" ? (`whisper:${target}` as const) : "all";
+  const whisper = myWhisper(ctx);
+  const activeWhisper = phase?.allowWhisper && whisper && whisper.startedAt > 0 ? whisper : null;
+  const channel =
+    activeWhisper && target === "whisper" ? (`whisper:${activeWhisper.id}` as const) : "all";
+
+  // 밀담이 열리면 밀담으로, 끝나면 전체로 보낸다
+  const activeId = activeWhisper?.id;
+  useEffect(() => {
+    setTarget(activeId ? "whisper" : "all");
+  }, [activeId]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: 새 메시지가 오면 맨 아래로
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
   }, [chat.length]);
 
-  const others = state.characters.filter(
-    (c) =>
-      c.id !== myCharacterId && Object.values(state.players).some((p) => p.characterId === c.id),
-  );
-
   return (
     <section className={cn("flex min-h-0 flex-col", className)} aria-label={title}>
+      {!readOnly && <WhisperBar ctx={ctx} />}
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {chat.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">
@@ -63,21 +71,18 @@ export function ChatPanel({
             setText("");
           }}
         >
-          {whisperOpen && (
+          {activeWhisper && (
             <div className="flex flex-wrap items-center gap-1.5">
               <ChannelChip active={target === "all"} onClick={() => setTarget("all")}>
                 전체
               </ChannelChip>
-              {others.map((c) => (
-                <ChannelChip
-                  key={c.id}
-                  active={target === c.id}
-                  onClick={() => setTarget(c.id)}
-                  whisper
-                >
-                  <Lock size={11} aria-hidden /> {c.name.split(" ")[0]}
-                </ChannelChip>
-              ))}
+              <ChannelChip
+                active={target === "whisper"}
+                onClick={() => setTarget("whisper")}
+                whisper
+              >
+                <Lock size={11} aria-hidden /> 밀담
+              </ChannelChip>
             </div>
           )}
           <div className="flex gap-2">
@@ -91,7 +96,12 @@ export function ChatPanel({
               maxLength={500}
               onChange={(e) => setText(e.target.value)}
               placeholder={
-                channel !== "all" ? `${ctx.character(target)?.name}에게만 보이는 밀담` : placeholder
+                activeWhisper && channel !== "all"
+                  ? `${whisperNames(
+                      ctx,
+                      activeWhisper.members.filter((id) => id !== myCharacterId),
+                    )}에게만 보이는 밀담`
+                  : placeholder
               }
             />
             <button
@@ -150,9 +160,11 @@ function Message({ m, ctx }: { m: ChatMessage; ctx: GameContext }) {
       </div>
     );
   }
+  const whisper = m.channel.startsWith("whisper:");
+  if (whisper && !m.fromSessionId) return <WhisperNotice text={m.text} />;
   const character = m.characterId ? ctx.character(m.characterId) : undefined;
   const mine = m.fromSessionId === ctx.sessionId;
-  const whisperTo = m.channel.startsWith("whisper:") ? m.channel.slice(8) : null;
+  const whisperWith = (m.whisperMembers ?? []).filter((id) => id !== ctx.myCharacterId);
   const nickname = m.fromSessionId ? ctx.state.players[m.fromSessionId]?.nickname : undefined;
   return (
     <div className={cn("flex gap-2.5", mine && "flex-row-reverse")}>
@@ -171,17 +183,16 @@ function Message({ m, ctx }: { m: ChatMessage; ctx: GameContext }) {
         <div
           className={cn(
             "whitespace-pre-wrap break-words rounded-md border px-3 py-2 text-sm leading-relaxed",
-            whisperTo
+            whisper
               ? "border-dashed border-[var(--secret-border)] bg-[var(--secret-surface)]"
               : mine
                 ? "border-[var(--clue-border)] bg-[var(--clue-surface)]"
                 : "border-border bg-card",
           )}
         >
-          {whisperTo && (
+          {whisper && (
             <span className="mb-1 flex items-center gap-1 text-[11px] font-semibold text-[var(--secret)]">
-              <Lock size={11} aria-hidden /> 밀담 ·{" "}
-              {mine ? `${ctx.character(whisperTo)?.name}에게` : "나에게"}
+              <Lock size={11} aria-hidden /> 밀담 · {whisperNames(ctx, whisperWith)}
             </span>
           )}
           <Styled text={m.text} />

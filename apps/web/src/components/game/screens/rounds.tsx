@@ -605,6 +605,7 @@ export function Discussion({ ctx }: { ctx: GameContext }) {
                 </p>
                 <p className="truncate text-[11px] text-muted-foreground">
                   {c.role} · 단서 {cards.filter((x) => x.holderId === c.id).length}장
+                  {p?.whispering && <span className="text-[var(--secret)]"> · 밀담 중</span>}
                 </p>
               </div>
             </div>
@@ -719,7 +720,9 @@ export function Discussion({ ctx }: { ctx: GameContext }) {
               토론 기록
             </p>
             {phase?.allowWhisper && (
-              <span className="text-xs text-[var(--secret)]">밀담: 받는 사람을 고르세요</span>
+              <span className="text-xs text-[var(--secret)]">
+                밀담 가능 · 최대 {phase.whisperMax || 3}인
+              </span>
             )}
           </div>
           <ChatPanel

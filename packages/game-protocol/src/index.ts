@@ -83,7 +83,16 @@ export interface ClientMessages {
   /** 이 페이즈에서 할 일을 마쳤다 (프롤로그·비밀 문서 숙지, 캐릭터 확정, 발언 종료) */
   "player:done": { done: boolean };
   "phase:advance": Record<string, never>;
+  /** channel: 전체 채팅은 "all", 밀담은 `whisper:<밀담 id>` (들어가 있는 밀담에만 보낼 수 있다) */
   "chat:send": { channel: "all" | `whisper:${string}`; text: string };
+  /**
+   * 밀담 초대. whisperId가 없으면 새 밀담을 열고, 있으면 들어가 있는 밀담에 사람을 더 부른다.
+   * 밀담은 본인 포함 최대 3인 (시나리오 설정이 더 작으면 그 값)
+   */
+  "whisper:invite": { characterIds: string[]; whisperId?: string };
+  /** 받은 밀담 초대에 답한다. 수락하면 들어가 있던 다른 밀담에서는 나온다 */
+  "whisper:respond": { whisperId: string; accept: boolean };
+  "whisper:leave": { whisperId: string };
   /** 탐색 라운드: 자기 차례에 보드의 카드 한 장을 줍는다 */
   "clue:pick": { clueId: string };
   /** 가진 단서를 모두에게 공개 */
@@ -117,6 +126,8 @@ export interface ServerMessages {
   };
   "clue:acquired": { clue: ClueView; from: "search" | "auto" | "public" | "given" };
   "voice:token": { url: string; token: string; roomName: string };
+  /** 밀담 초대를 받았다 (초대받은 사람에게만) */
+  "whisper:invited": { whisperId: string; fromCharacterId: string };
   "phase:changed": { phaseId: string; kind: PhaseKind; endsAt: number | null };
   error: { code: ErrorCode; message: string };
 }
@@ -139,6 +150,8 @@ export interface ChatMessage {
   characterId: string | null;
   text: string;
   sentAt: number;
+  /** 밀담 메시지: 보낼 때 그 밀담에 들어가 있던 인물 (받는 사람에게만 전달되는 메시지라 비밀이 아니다) */
+  whisperMembers?: string[];
 }
 
 /** 목표 결산·결말 화면에 쓰는 결과. 목표 결산 페이즈부터 상태에 JSON으로 실린다 */

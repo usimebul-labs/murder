@@ -40,3 +40,6 @@ export function botJudgement(random: () => number = Math.random) {
 }
 
 export const BOT_STATEMENT = "*잠시 침묵한 뒤* 저는 결백합니다. 판단은 여러분께 맡기겠습니다.";
+
+/** 밀담에 초대받은 봇이 수락하며 남기는 말 */
+export const BOT_WHISPER_LINE = "*목소리를 낮추며* 좋습니다. 무슨 이야기인지 들어 보지요.";

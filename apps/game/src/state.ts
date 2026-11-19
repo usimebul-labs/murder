@@ -23,6 +23,12 @@ export const PhaseInfo = schema(
     durationSec: t.uint16().default(0),
     round: t.uint8().default(0),
     allowWhisper: t.boolean().default(false),
+    /** 밀담 인원 상한 (본인 포함, 최대 3) */
+    whisperMax: t.uint8().default(0),
+    /** 밀담 한 번의 제한 시간(초). 0이면 페이즈가 끝날 때까지 */
+    whisperSec: t.uint16().default(0),
+    /** 한 사람이 이 페이즈에 열 수 있는 밀담 수. 0이면 제한 없음 */
+    whisperPerPlayer: t.uint8().default(0),
     voiceEnabled: t.boolean().default(false),
   },
   "PhaseInfo",
@@ -45,6 +51,8 @@ export const Player = schema(
     isBot: t.boolean().default(false),
     /** 누구에게 투표했는지는 공개하지 않고, 투표 여부만 공개 */
     hasVoted: t.boolean().default(false),
+    /** 밀담 중인지. 누구와 밀담하는지는 공개하지 않는다 (밀담 정보는 whispers view 필드) */
+    whispering: t.boolean().default(false),
     /** 이번 탐색 라운드에 남은 수집 횟수 */
     picksLeft: t.uint8().default(0),
   },
@@ -95,6 +103,26 @@ export const ClueState = schema(
 );
 export type ClueState = SchemaType<typeof ClueState>;
 
+/**
+ * 밀담 하나. whispers 맵은 view 필드라서 들어가 있거나 초대받은 클라이언트에게만 전송된다
+ */
+export const WhisperInfo = schema(
+  {
+    id: t.string().default(""),
+    hostId: t.string().default(""),
+    /** 들어와 있는 인물 id (초대를 보낸 사람 포함) */
+    members: t.array("string"),
+    /** 아직 답하지 않은 초대 */
+    invited: t.array("string"),
+    /** 두 명 이상 모여 열린 시각. 0이면 아직 수락한 사람이 없다 */
+    startedAt: t.float64().default(0),
+    /** epoch ms. 0이면 페이즈가 끝날 때까지 */
+    endsAt: t.float64().default(0),
+  },
+  "WhisperInfo",
+);
+export type WhisperInfo = SchemaType<typeof WhisperInfo>;
+
 /** 목표 결산의 판정단 항목 (다른 참가자가 달성 여부를 판정) */
 export const JuryItem = schema(
   {
@@ -126,6 +154,7 @@ export const GameState = schema(
     players: t.map(Player),
     cards: t.map(ClueCard),
     clues: t.map(ClueState).view(),
+    whispers: t.map(WhisperInfo).view(),
 
     /** 탐색: 수집 순서(캐릭터 id)와 지금 차례 */
     turnOrder: t.array("string"),
