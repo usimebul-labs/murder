@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CharacterInfo, ClueCardInfo, ClueInfo } from "./types";
 import type { Toast } from "./use-game";
 
@@ -444,6 +445,24 @@ export function Toasts({
   );
 }
 
+/**
+ * 모달 배경. 헤더·하단 바처럼 backdrop-filter가 걸린 조상 안에서 열려도
+ * fixed 기준이 그 조상으로 바뀌지 않도록 body로 포털해 뷰포트 중앙에 둔다.
+ */
+export function Overlay({ children, className }: { children: ReactNode; className?: string }) {
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-3 backdrop-blur-[2px] sm:p-6",
+        className,
+      )}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}
 export function Modal({
   open,
   onClose,
@@ -469,7 +488,7 @@ export function Modal({
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex animate-[nm-fade_220ms] items-end justify-center bg-[var(--overlay)] p-3 backdrop-blur-[2px] sm:items-center sm:p-6">
+    <Overlay className="animate-[nm-fade_220ms]">
       <button
         type="button"
         aria-label="닫기"
@@ -504,7 +523,7 @@ export function Modal({
           </div>
         )}
       </div>
-    </div>
+    </Overlay>
   );
 }
 
