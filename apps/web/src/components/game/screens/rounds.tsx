@@ -2,6 +2,7 @@
 
 import { cn } from "@mm/ui";
 import {
+  Check,
   Eye,
   Fingerprint,
   Gift,
@@ -90,14 +91,23 @@ function useClues(ctx: GameContext) {
   }, [ctx.state.cards, ctx.state.clues, ctx.myCharacterId]);
 }
 
-function HolderTag({ ctx, card }: { ctx: GameContext; card: ClueCardInfo }) {
+function HolderTag({
+  ctx,
+  card,
+  blocked,
+}: {
+  ctx: GameContext;
+  card: ClueCardInfo;
+  /** 보드 위에 있지만 내가 고를 수 없는 이유 */
+  blocked?: string;
+}) {
   if (!card.holderId) {
     return card.isPublic ? (
       <span className="inline-flex items-center gap-1 font-semibold">
         <Eye size={12} /> 공통 자료
       </span>
     ) : (
-      <span className="text-[var(--paper-ink-muted)]">미수집</span>
+      <span className="text-[var(--paper-ink-muted)]">{blocked ?? "미수집"}</span>
     );
   }
   const c = ctx.character(card.holderId);
@@ -129,26 +139,38 @@ export function Explore({ ctx }: { ctx: GameContext }) {
   const turnCharacter = ctx.character(state.turnCharacterId);
   const tone = phaseTone("investigation");
 
-  // 탐색 단서는 단계별로 나누지 않고 모두 보드에 나온다. 단계마다 수집 개수만 정해져 있다
+  // 탐색 단서는 단계별로 나누지 않고 모두 보드에 나온다. 장소 단서와 인물 단서는 따로 있다
   const searchCards = cards.filter((c) => c.distribution === "search");
+  const placeCards = searchCards.filter((c) => c.locationId);
+  const personCards = searchCards.filter((c) => c.characterId);
   const counts: Record<string, number> = {};
   const personCounts: Record<string, number> = {};
   for (const c of searchCards) {
     if (c.holderId) continue;
     if (c.locationId) counts[c.locationId] = (counts[c.locationId] ?? 0) + 1;
-    for (const id of c.characterIds) personCounts[id] = (personCounts[id] ?? 0) + 1;
+    if (c.characterId) personCounts[c.characterId] = (personCounts[c.characterId] ?? 0) + 1;
   }
-  const people = state.characters.filter((c) =>
-    searchCards.some((x) => x.characterIds.includes(c.id)),
-  );
-  const visible = searchCards
+  const people = state.characters.filter((c) => personCards.some((x) => x.characterId === c.id));
+  const picked = new Set(ctx.me?.pickedTargets ?? []);
+  const targetOf = (c: ClueCardInfo) =>
+    c.locationId ? `place:${c.locationId}` : `person:${c.characterId}`;
+  /** 보드 위 카드를 내가 고를 수 없는 이유 (고를 수 있으면 undefined) */
+  const blockedReason = (c: ClueCardInfo) => {
+    if (!myCharacterId || c.holderId || c.isPublic) return undefined;
+    if (c.characterId === myCharacterId) return "내 인물 단서";
+    if (picked.has(targetOf(c))) return "이번 탐색에 조사함";
+    return undefined;
+  };
+  const visible = (mode === "place" ? placeCards : personCards)
     .filter((c) =>
       mode === "place"
         ? location === "all" || c.locationId === location
-        : person === "all" || c.characterIds.includes(person),
+        : person === "all" || c.characterId === person,
     )
     .sort((a, b) => Number(!!a.holderId) - Number(!!b.holderId) || a.code.localeCompare(b.code));
   const remaining = searchCards.filter((c) => !c.holderId).length;
+  const placeRemaining = placeCards.filter((c) => !c.holderId).length;
+  const personRemaining = personCards.filter((c) => !c.holderId).length;
   const seats = [...new Set(state.turnOrder)];
   const perPlayer = seats.length ? Math.round(state.turnTotal / seats.length) : 0;
   const filterTab = (active: boolean) =>
@@ -254,7 +276,8 @@ export function Explore({ ctx }: { ctx: GameContext }) {
                 <h2 className="mt-1 font-serif text-2xl font-bold">단서 보드</h2>
                 {perPlayer > 0 && (
                   <p className="mt-1 text-sm text-muted-foreground">
-                    이번 탐색에서는 한 사람당 {perPlayer}장까지 수집할 수 있어요.
+                    이번 탐색에서는 한 사람당 {perPlayer}장까지 수집할 수 있어요. 같은 장소나 같은
+                    인물의 단서는 한 장만 가져갈 수 있고, 내 인물에 대한 단서는 가져갈 수 없어요.
                   </p>
                 )}
               </div>
@@ -271,7 +294,10 @@ export function Explore({ ctx }: { ctx: GameContext }) {
                     onClick={() => setMode("place")}
                     className={filterTab(mode === "place")}
                   >
-                    <MapPin size={14} aria-hidden /> 장소별
+                    <MapPin size={14} aria-hidden /> 장소 단서
+                    <span className="rounded-full bg-muted px-1.5 font-mono text-[11px]">
+                      {placeRemaining}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -280,7 +306,10 @@ export function Explore({ ctx }: { ctx: GameContext }) {
                     onClick={() => setMode("person")}
                     className={filterTab(mode === "person")}
                   >
-                    <Users size={14} aria-hidden /> 인물별
+                    <Users size={14} aria-hidden /> 인물 단서
+                    <span className="rounded-full bg-muted px-1.5 font-mono text-[11px]">
+                      {personRemaining}
+                    </span>
                   </button>
                 </div>
                 {mode === "place" && (
@@ -308,8 +337,11 @@ export function Explore({ ctx }: { ctx: GameContext }) {
                       className={filterTab(location === l.id)}
                     >
                       {l.name}
+                      {picked.has(`place:${l.id}`) && (
+                        <Check size={12} aria-label="이번 탐색에 조사함" className="text-primary" />
+                      )}
                       <span className="rounded-full bg-muted px-1.5 font-mono text-[11px]">
-                        {l.id === "all" ? remaining : (counts[l.id] ?? 0)}
+                        {l.id === "all" ? placeRemaining : (counts[l.id] ?? 0)}
                       </span>
                     </button>
                   ))}
@@ -329,6 +361,13 @@ export function Explore({ ctx }: { ctx: GameContext }) {
                   {[undefined, ...people].map((c) => {
                     const id = c?.id ?? "all";
                     const active = person === id;
+                    const note = !c
+                      ? "모든 인물"
+                      : c.id === myCharacterId
+                        ? "내 인물 · 수집 불가"
+                        : picked.has(`person:${c.id}`)
+                          ? `${c.role} · 이번 탐색에 조사함`
+                          : c.role;
                     return (
                       <li key={id}>
                         <button
@@ -355,11 +394,11 @@ export function Explore({ ctx }: { ctx: GameContext }) {
                               {c?.id === myCharacterId && " (나)"}
                             </span>
                             <span className="block truncate text-[11px] text-muted-foreground">
-                              {c ? c.role : "모든 인물"}
+                              {note}
                             </span>
                           </span>
                           <span className="rounded-full bg-muted px-1.5 font-mono text-[11px]">
-                            {c ? (personCounts[c.id] ?? 0) : remaining}
+                            {c ? (personCounts[c.id] ?? 0) : personRemaining}
                           </span>
                         </button>
                       </li>
@@ -368,7 +407,8 @@ export function Explore({ ctx }: { ctx: GameContext }) {
                 </ul>
                 {person !== "all" && (
                   <p className="text-sm text-muted-foreground">
-                    {ctx.character(person)?.name} 관련 단서예요. 카드에 적힌 출처에서 발견돼요.
+                    {ctx.character(person)?.name}에 대한 단서예요.
+                    {person === myCharacterId && " 내 인물의 단서라서 가져갈 수 없어요."}
                   </p>
                 )}
               </>
@@ -376,7 +416,8 @@ export function Explore({ ctx }: { ctx: GameContext }) {
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
               {visible.map((card) => {
                 const clue = clues[card.id];
-                const free = !card.holderId;
+                const blocked = blockedReason(card);
+                const free = !card.holderId && !blocked;
                 return (
                   <li key={card.id}>
                     <ClueCard
@@ -384,12 +425,16 @@ export function Explore({ ctx }: { ctx: GameContext }) {
                       clue={clue}
                       compact
                       selected={selected === card.id}
-                      className={cn("min-h-40 w-full", !free && !clue && "opacity-60")}
+                      className={cn(
+                        "min-h-40 w-full",
+                        !card.holderId && blocked && "opacity-50",
+                        card.holderId && !clue && "opacity-60",
+                      )}
                       onClick={() => {
                         if (free && myTurn) setSelected(card.id);
                         else setDetail(card);
                       }}
-                      holder={<HolderTag ctx={ctx} card={card} />}
+                      holder={<HolderTag ctx={ctx} card={card} blocked={blocked} />}
                     />
                   </li>
                 );
@@ -437,7 +482,7 @@ export function Explore({ ctx }: { ctx: GameContext }) {
         <ActionBar
           eyebrow="YOUR TURN"
           title="단서 하나를 고르십시오"
-          desc="뒤집힌 카드를 눌러 선택하세요. 시간이 지나면 무작위로 수집돼요."
+          desc="뒤집힌 카드를 눌러 선택하세요. 시간이 지나면 고를 수 있는 단서 중 하나가 무작위로 수집돼요."
           tone="var(--primary)"
         >
           <button
@@ -605,6 +650,7 @@ export function Discussion({ ctx }: { ctx: GameContext }) {
                 </p>
                 <p className="truncate text-[11px] text-muted-foreground">
                   {c.role} · 단서 {cards.filter((x) => x.holderId === c.id).length}장
+                  {p?.whispering && <span className="text-[var(--secret)]"> · 밀담 중</span>}
                 </p>
               </div>
             </div>
@@ -633,7 +679,9 @@ export function Discussion({ ctx }: { ctx: GameContext }) {
               토론 기록
             </p>
             {phase?.allowWhisper && (
-              <span className="text-xs text-[var(--secret)]">밀담: 받는 사람을 고르세요</span>
+              <span className="text-xs text-[var(--secret)]">
+                밀담 가능 · 최대 {phase.whisperMax || 3}인
+              </span>
             )}
           </div>
           <ChatPanel

@@ -38,6 +38,7 @@ export function useGame(scenarioVersionId: string, initialRoomId?: string) {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const roomRef = useRef<Room | null>(null);
+  const stateRef = useRef<GameSnapshot | null>(null);
   const toastId = useRef(0);
 
   const toast = useCallback((t: Omit<Toast, "id">) => {
@@ -75,9 +76,20 @@ export function useGame(scenarioVersionId: string, initialRoomId?: string) {
           }[m.from];
           toast({ tone: "clue", title: label, desc: `${m.clue.code} · ${m.clue.title}` });
         },
+        "whisper:invited": (m: ServerMessages["whisper:invited"]) => {
+          const from = stateRef.current?.characters.find((c) => c.id === m.fromCharacterId);
+          toast({
+            tone: "info",
+            title: "밀담 초대가 왔습니다",
+            desc: `${from?.name ?? "누군가"} · 대화창에서 수락하거나 거절하십시오`,
+          });
+        },
         error: (m: ServerMessages["error"]) => toast({ tone: "error", title: m.message }),
       };
-      joined.onStateChange((s: { toJSON(): GameSnapshot }) => setState(s.toJSON()));
+      joined.onStateChange((s: { toJSON(): GameSnapshot }) => {
+        stateRef.current = s.toJSON();
+        setState(stateRef.current);
+      });
       for (const [type, handler] of Object.entries(handlers)) joined.onMessage(type, handler);
       joined.onMessage("*", () => {});
       // 다른 화면에서 넘겨받은 연결이면, 그동안 받은 상태와 메시지를 다시 적용한다

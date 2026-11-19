@@ -17,6 +17,8 @@ export interface GameSnapshot {
   cards: Record<string, ClueCardInfo>;
   /** view 필드라서 이 플레이어가 볼 수 있는 단서가 생기기 전에는 없다 */
   clues?: Record<string, ClueInfo>;
+  /** view 필드라서 내가 들어가 있거나 초대받은 밀담만 온다 */
+  whispers?: Record<string, WhisperInfo>;
   turnOrder: string[];
   turnCharacterId: string;
   turnEndsAt: number;
@@ -63,6 +65,12 @@ export interface PhaseInfo {
   durationSec: number;
   round: number;
   allowWhisper: boolean;
+  /** 밀담 인원 상한 (본인 포함, 최대 3) */
+  whisperMax: number;
+  /** 밀담 한 번의 제한 시간(초). 0이면 페이즈가 끝날 때까지 */
+  whisperSec: number;
+  /** 한 사람이 이 페이즈에 열 수 있는 밀담 수. 0이면 제한 없음 */
+  whisperPerPlayer: number;
   voiceEnabled: boolean;
 }
 
@@ -79,7 +87,24 @@ export interface PlayerInfo {
   /** 테스트 방에서 빈 자리를 채운 AI 봇 */
   isBot: boolean;
   hasVoted: boolean;
+  /** 열린 밀담에 들어가 있는지 (누구와인지는 비공개) */
+  whispering: boolean;
   picksLeft: number;
+  /** 이번 탐색 단계에 단서를 가져간 대상 ("place:장소 id" / "person:인물 id") */
+  pickedTargets: string[];
+}
+
+export interface WhisperInfo {
+  id: string;
+  hostId: string;
+  /** 들어와 있는 인물 id (초대를 보낸 사람 포함) */
+  members: string[];
+  /** 아직 답하지 않은 초대 */
+  invited: string[];
+  /** 0이면 아직 수락한 사람이 없다 */
+  startedAt: number;
+  /** 0이면 페이즈가 끝날 때까지 */
+  endsAt: number;
 }
 
 export interface ClueCardInfo {
@@ -88,8 +113,8 @@ export interface ClueCardInfo {
   category: ClueCategory;
   source: string;
   locationId: string;
-  /** 관련 인물 id (인물별 탐색) */
-  characterIds: string[];
+  /** 인물 단서의 대상 인물 id. 장소 단서면 빈 문자열 */
+  characterId: string;
   /** search = 단서 보드에서 줍는 단서, public = 공통 자료, auto = 자동 배포 */
   distribution: "search" | "public" | "auto";
   /** 탐색 단서는 수집된 라운드(보드 위면 0), 그 밖의 단서는 나온 라운드 */

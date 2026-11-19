@@ -162,10 +162,12 @@ function checkRules(s: Scenario): ScenarioIssue[] {
     if (clue.visibility.kind === "characters") {
       for (const cid of clue.visibility.characterIds) refCharacter(cid, `${path}.visibility`);
     }
-    for (const cid of clue.characterIds) refCharacter(cid, `${path}.characterIds`);
+    if (clue.characterId) refCharacter(clue.characterId, `${path}.characterId`);
     if (clue.distribution === "search") {
-      if (!clue.locationId && clue.characterIds.length === 0)
-        add(`${path}.locationId`, "탐색 단서에 장소도 관련 인물도 없습니다");
+      if (!clue.locationId && !clue.characterId)
+        add(`${path}.locationId`, "탐색 단서에 장소도 인물도 없습니다");
+      if (clue.locationId && clue.characterId)
+        add(`${path}.characterId`, "탐색 단서는 장소 단서와 인물 단서 중 하나여야 합니다");
       if (clue.locationId && !locationIds.has(clue.locationId))
         add(`${path}.locationId`, `없는 장소를 참조합니다: ${clue.locationId}`);
       if (clue.unlock.fromRound > 1 || clue.unlock.when)
