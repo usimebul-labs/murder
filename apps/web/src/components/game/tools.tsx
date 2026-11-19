@@ -49,7 +49,7 @@ export function HeaderTools({ ctx }: { ctx: GameContext }) {
         wide
       >
         <div className="-mx-5 -mb-5 h-[70dvh]">
-          <CaseFile ctx={ctx} className="h-full border-l-0" />
+          <CaseFile ctx={ctx} className="h-full border-l-0" showCover={false} />
         </div>
       </Modal>
     </>

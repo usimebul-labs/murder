@@ -204,8 +204,16 @@ function Badge({
   );
 }
 
-/** 오른쪽 사건 자료: 프롤로그 / 진행 방식 / 등장인물 */
-export function CaseFile({ ctx, className }: { ctx: GameContext; className?: string }) {
+/** 오른쪽 사건 자료: 프롤로그 / 진행 방식 / 등장인물. 플레이 중 창에서는 표지를 숨긴다 */
+export function CaseFile({
+  ctx,
+  className,
+  showCover = true,
+}: {
+  ctx: GameContext;
+  className?: string;
+  showCover?: boolean;
+}) {
   const { scenario, state } = ctx;
   const [tab, setTab] = useState<"prologue" | "rules" | "cast">("prologue");
   const [page, setPage] = useState(0);
@@ -216,7 +224,7 @@ export function CaseFile({ ctx, className }: { ctx: GameContext; className?: str
     <aside
       className={cn("flex min-h-0 flex-col border-l border-border bg-[var(--ink-950)]", className)}
     >
-      {scenario.meta.coverImageKey && (
+      {showCover && scenario.meta.coverImageKey && (
         <div className="relative aspect-[16/7] flex-none overflow-hidden border-b border-border">
           {/* biome-ignore lint/performance/noImgElement: 정적 SVG 표지 */}
           <img
