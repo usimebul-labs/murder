@@ -3,7 +3,7 @@
 import { cn } from "@mm/ui";
 import { BookOpenCheck, ChevronLeft, ChevronRight, CircleCheck, Lock, Target } from "lucide-react";
 import { useRef, useState } from "react";
-import { ActionBar, Avatar, btn, Countdown, Eyebrow, Notes, Portrait, TopBar } from "../primitives";
+import { ActionBar, Avatar, btn, Countdown, Eyebrow, Portrait, TopBar } from "../primitives";
 import type { GameContext } from "../types";
 
 const SECTIONS = [
@@ -323,7 +323,7 @@ export function Reading({ ctx }: { ctx: GameContext }) {
           </>
         }
       />
-      <div className="grid flex-1 grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
+      <div className="grid flex-1 grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
         <nav
           className="border-b border-border p-4 lg:border-b-0 lg:border-r"
           aria-label="문서 목차"
@@ -415,12 +415,6 @@ export function Reading({ ctx }: { ctx: GameContext }) {
           </div>
           <DossierBody ctx={ctx} section={section} />
         </main>
-        <aside className="border-t border-border p-4 lg:border-l lg:border-t-0">
-          <Notes
-            storageKey={`mm:note:${ctx.roomId}:${ctx.myCharacterId}`}
-            className="lg:sticky lg:top-[72px] lg:h-[calc(100dvh-180px)]"
-          />
-        </aside>
       </div>
       <ActionBar
         eyebrow={`READING · ${seen.size}/${sections.length}`}

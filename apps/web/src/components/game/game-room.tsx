@@ -2,6 +2,7 @@
 
 import { cn } from "@mm/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { hasNotes, NotesDock } from "./notes";
 import { btn, Eyebrow, Toasts } from "./primitives";
 import { Reading } from "./screens/dossier";
 import { Ending, FinalVote, Objectives } from "./screens/finale";
@@ -85,7 +86,13 @@ export function GameRoom({
 
   return (
     <>
-      <Screen ctx={ctx} onCopyLink={copyLink} />
+      {hasNotes(ctx) ? (
+        <NotesDock ctx={ctx}>
+          <Screen ctx={ctx} onCopyLink={copyLink} />
+        </NotesDock>
+      ) : (
+        <Screen ctx={ctx} onCopyLink={copyLink} />
+      )}
       {game.error && (
         <p className="fixed inset-x-0 bottom-0 z-50 bg-[var(--accused-surface)] px-4 py-2 text-center text-sm text-[var(--destructive-text)]">
           {game.error}
