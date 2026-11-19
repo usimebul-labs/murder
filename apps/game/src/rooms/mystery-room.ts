@@ -27,8 +27,10 @@ import {
 } from "../bots.js";
 import {
   boardClues,
+  canPick,
   canSee,
   castRoles,
+  clueTarget,
   currentRound,
   type GameFacts,
   isUnlocked,
@@ -708,7 +710,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
             ? 0
             : Math.max(1, currentRound(this.scenario, this.state.phaseIndex)),
       });
-      for (const id of clue.characterIds) card.characterIds.push(id);
+      card.characterId = clue.characterId ?? "";
       this.state.cards.set(clue.id, card);
     }
     return card;
@@ -773,11 +775,16 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     }
   }
 
-  /** 이 캐릭터가 지금 보드에서 가져갈 수 있는 단서 */
+  /** 이 캐릭터가 지금 보드에서 가져갈 수 있는 단서 (자기 인물 단서, 이번 단계에 이미 조사한 대상 제외) */
   private availableFor(characterId: string): Clue[] {
+    const picked = new Set(this.playerByCharacter(characterId)?.pickedTargets ?? []);
     return boardClues(this.scenario).filter((c) => {
       const card = this.state.cards.get(c.id);
-      return (!card || (!card.holderId && !card.isPublic)) && canSee(c, characterId);
+      return (
+        (!card || (!card.holderId && !card.isPublic)) &&
+        canSee(c, characterId) &&
+        canPick(c, characterId, picked)
+      );
     });
   }
 
@@ -793,6 +800,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     this.state.turnTotal = this.turnSeq.length;
     for (const p of this.state.players.values()) {
       p.picksLeft = p.characterId ? phase.pointsPerPlayer : 0;
+      p.pickedTargets.clear();
     }
     this.nextTurn();
   }
@@ -808,22 +816,31 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     this.turnTimer?.clear();
     this.turnIndex += 1;
     const characterId = this.turnSeq[this.turnIndex];
-    if (!characterId || this.availableFor(characterId).length === 0) {
-      // 모두 다 주웠거나 더 주울 단서가 없다
-      const rest = this.turnSeq.slice(this.turnIndex);
-      if (characterId && rest.some((id) => this.availableFor(id).length > 0)) {
-        this.state.turnNumber = this.turnIndex + 1;
-        this.nextTurn();
-        return;
-      }
+    const rest = this.turnSeq.slice(this.turnIndex);
+    if (!characterId || !rest.some((id) => this.availableFor(id).length > 0)) {
+      // 모두 다 주웠거나, 남은 차례에 아무도 주울 단서가 없다
       this.state.turnCharacterId = "";
       this.state.turnEndsAt = 0;
       this.state.turnNumber = this.turnSeq.length;
-      for (const p of this.state.players.values()) p.done = true;
+      for (const p of this.state.players.values()) {
+        p.done = true;
+        p.picksLeft = 0;
+      }
       this.announce("이번 라운드의 수집이 끝났습니다");
       if (this.currentPhase()?.endEarlyWhenAllDone) {
         this.turnTimer = this.clock.setTimeout(() => this.advancePhase(), 4000);
       }
+      return;
+    }
+    if (this.availableFor(characterId).length === 0) {
+      // 수집할 수 있는 단서가 없으면 수집하지 않고 차례를 넘긴다
+      const player = this.playerByCharacter(characterId);
+      if (player && player.picksLeft > 0) player.picksLeft -= 1;
+      this.state.turnNumber = this.turnIndex + 1;
+      this.announce(
+        `${josa(this.characterName(characterId), "은/는")} 수집할 수 있는 단서가 없어 차례를 넘깁니다`,
+      );
+      this.nextTurn();
       return;
     }
     const seconds = this.turnSeconds();
@@ -850,11 +867,12 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     this.ensureCard(clue).round = Math.max(1, currentRound(this.scenario, this.state.phaseIndex));
     const player = this.playerByCharacter(characterId);
     if (player && player.picksLeft > 0) player.picksLeft -= 1;
+    player?.pickedTargets.push(clueTarget(clue));
     const place = this.scenario.locations.find((l) => l.id === clue.locationId)?.name;
     const where = place
       ? `${place}에서 `
-      : clue.characterIds.length > 0
-        ? `${this.characterName(clue.characterIds[0] ?? "")} 관련 단서 중 `
+      : clue.characterId
+        ? `${this.characterName(clue.characterId)}에 대한 단서 중 `
         : "";
     this.announce(
       `${josa(this.characterName(characterId), "이/가")} ${where}${josa(clue.code, "을/를")} ${auto ? "무작위로 " : ""}수집했습니다`,

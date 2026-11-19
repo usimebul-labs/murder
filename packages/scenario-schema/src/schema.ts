@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** 시나리오 JSON 형식의 버전. 형식이 바뀌면 올리고 migrate.ts에 변환을 추가한다. */
-export const SCHEMA_VERSION = 4 as const;
+export const SCHEMA_VERSION = 5 as const;
 
 const id = z
   .string()
@@ -194,14 +194,18 @@ export const ClueSchema = z.object({
   /** Supabase Storage 객체 키 (비공개 버킷) */
   imageKey: z.string().optional(),
   /**
-   * search = 단서 보드에서 줍는다. 장소(locationId)나 관련 인물(characterIds)로 찾아볼 수 있다
+   * search = 단서 보드에서 줍는다. 장소 단서(locationId)와 인물 단서(characterId) 중 하나다
    * public = 해금되는 순간 모두에게 공개된다 (공통 자료)
    * auto   = 해금되는 순간 visibility 대상 캐릭터에게 자동으로 주어진다
    */
   distribution: z.enum(["search", "public", "auto"]).default("search"),
+  /** 장소 단서: 이 장소를 조사해 줍는다 */
   locationId: id.optional(),
-  /** 관련 인물. 단서 보드의 인물별 탐색에서 이 인물 아래에 나온다 (앞면에 공개된다) */
-  characterIds: z.array(id).max(8).default([]),
+  /**
+   * 인물 단서: 이 인물을 조사해 줍는다 (앞면에 공개된다).
+   * 그 인물을 맡은 플레이어는 자기 인물 단서를 수집할 수 없다
+   */
+  characterId: id.optional(),
   visibility: ClueVisibilitySchema.default({ kind: "all" }),
   /** public·auto 단서에만 쓴다. search 단서에 해금 조건을 두면 검증에서 막는다 */
   unlock: ClueUnlockSchema.default({ fromRound: 1 }),

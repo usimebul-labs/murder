@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   autoUnlockedClues,
   boardClues,
+  canPick,
   castRoles,
   cluesAboutCharacter,
   cluesAtLocation,
+  clueTarget,
   currentRound,
   type GameFacts,
   pickEnding,
@@ -48,16 +50,33 @@ describe("game-logic", () => {
       "ev-17",
       "ev-21",
     ]);
-    expect(cluesAtLocation(scenario, "guest-wing", "henry", facts())).toHaveLength(2);
+    expect(cluesAtLocation(scenario, "guest-wing", "henry", facts())).toHaveLength(3);
   });
 
-  it("인물별로도 단서를 찾을 수 있다", () => {
+  it("인물 단서는 장소 단서와 따로 있다", () => {
     const victor = ids(cluesAboutCharacter(scenario, "victor", "henry", facts()));
-    expect(victor).toEqual(["ev-03", "ev-15", "ev-17", "ev-19", "ev-20", "ev-21"]);
-    const owned = new Map([["henry", new Set(["ev-19"])]]);
+    expect(victor).toEqual(["ev-46", "ev-47", "ev-48", "ev-49"]);
+    const owned = new Map([["henry", new Set(["ev-46"])]]);
     expect(ids(cluesAboutCharacter(scenario, "victor", "henry", facts({ owned })))).not.toContain(
-      "ev-19",
+      "ev-46",
     );
+    const board = boardClues(scenario);
+    expect(board.every((c) => !!c.locationId !== !!c.characterId)).toBe(true);
+  });
+
+  it("자기 인물 단서와 이번 단계에 이미 조사한 대상은 고를 수 없다", () => {
+    const clue = (id: string) => {
+      const c = scenario.clues.find((x) => x.id === id);
+      if (!c) throw new Error(id);
+      return c;
+    };
+    expect(canPick(clue("ev-46"), "victor", new Set())).toBe(false);
+    expect(canPick(clue("ev-46"), "henry", new Set())).toBe(true);
+    expect(canPick(clue("ev-47"), "henry", new Set([clueTarget(clue("ev-46"))]))).toBe(false);
+    expect(canPick(clue("ev-02"), "henry", new Set([clueTarget(clue("ev-01"))]))).toBe(false);
+    expect(canPick(clue("ev-05"), "henry", new Set([clueTarget(clue("ev-01"))]))).toBe(true);
+    expect(clueTarget(clue("ev-01"))).toBe("place:study");
+    expect(clueTarget(clue("ev-46"))).toBe("person:victor");
   });
 
   it("공통 자료는 모두에게, 자동 배포 단서는 대상 캐릭터에게만 간다", () => {
@@ -89,9 +108,10 @@ describe("game-logic", () => {
     expect(board).toContain("ev-01");
     expect(board).toContain("ev-19");
     expect(board).toContain("ev-23");
+    expect(board).toContain("ev-53");
     expect(board).not.toContain("ev-p1");
     expect(board).not.toContain("ev-10");
-    expect(board).toHaveLength(22);
+    expect(board).toHaveLength(52);
   });
 
   it("동표면 최다 득표자를 모두 돌려준다", () => {

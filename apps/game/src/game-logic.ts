@@ -117,9 +117,29 @@ export function cluesAboutCharacter(
   characterId: string,
   facts: GameFacts,
 ): Clue[] {
-  return searchableFor(scenario, characterId, facts).filter((c) =>
-    c.characterIds.includes(aboutCharacterId),
+  return searchableFor(scenario, characterId, facts).filter(
+    (c) => c.characterId === aboutCharacterId,
   );
+}
+
+/** 탐색 단서의 조사 대상: "place:장소 id" 또는 "person:인물 id" */
+export function clueTarget(clue: Clue): string {
+  return clue.locationId ? `place:${clue.locationId}` : `person:${clue.characterId ?? ""}`;
+}
+
+/**
+ * 탐색 단계의 수집 규칙.
+ * - 자기 인물에 대한 단서는 수집할 수 없다.
+ * - 같은 탐색 단계에서 같은 장소, 같은 인물의 단서를 두 장 가져갈 수 없다.
+ * pickedTargets = 이번 단계에 이 캐릭터가 이미 단서를 가져간 대상 (clueTarget 값)
+ */
+export function canPick(
+  clue: Clue,
+  characterId: string,
+  pickedTargets: ReadonlySet<string>,
+): boolean {
+  if (clue.characterId === characterId) return false;
+  return !pickedTargets.has(clueTarget(clue));
 }
 
 /** 투표 집계: 최다 득표 캐릭터 (동률이면 null) */
@@ -149,13 +169,13 @@ export function pickEnding(scenario: Scenario, facts: GameFacts): Ending {
 }
 
 /**
- * 단서 보드의 탐색 단서. 탐색 단계별로 나누지 않고 처음부터 모두 나온다.
+ * 단서 보드의 탐색 단서 (장소 단서 + 인물 단서). 탐색 단계별로 나누지 않고 처음부터 모두 나온다.
  * 누가 이미 가져갔는지와 상관없이 돌려준다 (카드는 가져가도 보드에 남는다).
  * 단계별로는 수집 개수(pointsPerPlayer)만 제한한다.
  */
 export function boardClues(scenario: Scenario): Clue[] {
   return scenario.clues.filter(
-    (c) => c.distribution === "search" && (!!c.locationId || c.characterIds.length > 0),
+    (c) => c.distribution === "search" && (!!c.locationId || !!c.characterId),
   );
 }
 
