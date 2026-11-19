@@ -19,6 +19,7 @@ import {
   BOT_ACTION_MS,
   BOT_STATEMENT,
   BOT_STATEMENT_MS,
+  BOT_WHISPER_LINE,
   botJudgement,
   botKey,
   botNickname,
@@ -53,8 +54,10 @@ import {
   JuryItem,
   PhaseInfo,
   Player,
+  WhisperInfo,
 } from "../state.js";
 import { createVoiceToken, voiceEnabled } from "../voice.js";
+import { WHISPER_INVITE_SEC, WhisperBook, type WhisperRecord, whisperLimits } from "../whisper.js";
 
 type MysteryClient = Client<{ auth: AuthUser }>;
 type Timer = { clear(): void };
@@ -91,6 +94,12 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
   private speakerTimer?: Timer;
   /** 테스트 방 봇의 다음 행동 (투표, 판정) */
   private botTimer?: Timer;
+  /** 밀담 기록. 페이즈가 바뀌면 모두 끝난다 */
+  private whispers = new WhisperBook(whisperLimits());
+  /** 밀담 id → 그 밀담의 타이머 (제한 시간, 초대 만료, 봇 응답) */
+  private whisperTimers = new Map<string, Timer[]>();
+  /** 밀담 id → 지금 그 밀담 정보를 볼 수 있는 인물 id */
+  private whisperViewers = new Map<string, Set<string>>();
 
   static async onAuth(token: string, _options: unknown, _context: AuthContext) {
     return verifyToken(token);
@@ -135,6 +144,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
           durationSec: p.durationSec,
           round: "round" in p ? p.round : 0,
           allowWhisper: p.allowWhisper,
+          ...(p.allowWhisper ? this.whisperPhaseInfo(p) : {}),
           voiceEnabled: p.voiceEnabled,
         }),
       );
@@ -235,6 +245,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
 
   onDispose() {
     this.clearTimers();
+    for (const id of [...this.whisperTimers.keys()]) this.dropWhisper(id);
     this.phase.stop();
     // TODO: 게임 기록(games, game_participants, game_chat_logs)을 DB에 저장
   }
@@ -359,12 +370,47 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
       if (!this.currentPhase()?.allowWhisper) {
         return this.fail(client, "not-allowed-in-phase", "지금은 밀담할 수 없습니다");
       }
+      const whisper = this.whispers.whispers.get(channel.slice("whisper:".length));
+      if (!player.characterId || !whisper?.members.includes(player.characterId)) {
+        return this.fail(client, "invalid-message", "들어가 있지 않은 밀담입니다");
+      }
+      if (whisper.startedAt === 0) {
+        return this.fail(client, "not-allowed-in-phase", "상대가 수락하면 대화할 수 있습니다");
+      }
+      this.sendWhisper(whisper, { ...message, whisperMembers: [...whisper.members] });
+    });
+
+    this.handle("whisper:invite", (client, { characterIds, whisperId }, player) => {
+      if (!this.currentPhase()?.allowWhisper) {
+        return this.fail(client, "not-allowed-in-phase", "지금은 밀담할 수 없습니다");
+      }
       if (!player.characterId) return;
-      const target = this.clientByCharacter(channel.slice("whisper:".length));
-      if (!target || target === client) return;
-      this.pushChat(message);
-      this.sendTo(client, "chat:message", message);
-      this.sendTo(target, "chat:message", message);
+      const result = this.whispers.invite(
+        player.characterId,
+        Array.isArray(characterIds) ? characterIds.map(String) : [],
+        this.assignedCharacterIds(),
+        whisperId ? String(whisperId) : undefined,
+      );
+      if (!result.ok) return this.fail(client, "invalid-message", result.error);
+      const { whisper, added } = result.value;
+      for (const id of added) this.onInvited(whisper, player.characterId, id);
+      this.syncWhisper(whisper);
+    });
+
+    this.handle("whisper:respond", (client, { whisperId, accept }, player) => {
+      if (!this.currentPhase()?.allowWhisper) {
+        return this.fail(client, "not-allowed-in-phase", "지금은 밀담할 수 없습니다");
+      }
+      if (!player.characterId) return;
+      const error = this.respondWhisper(player.characterId, String(whisperId), !!accept);
+      if (error) this.fail(client, "invalid-message", error);
+    });
+
+    this.handle("whisper:leave", (client, { whisperId }, player) => {
+      if (!player.characterId) return;
+      const result = this.whispers.leave(player.characterId, String(whisperId));
+      if (!result.ok) return this.fail(client, "invalid-message", result.error);
+      this.afterLeave(player.characterId, result.value.whisper, result.value.ended);
     });
 
     this.handle("clue:pick", (client, { clueId }, player) => {
@@ -524,6 +570,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     const phase = this.currentPhase();
     if (!phase) return;
 
+    this.resetWhispers(phase);
     // 봇은 숙지·확정할 것이 없으니 늘 마친 상태로 둔다
     for (const p of this.state.players.values()) p.done = p.isBot;
     this.state.turnCharacterId = "";
@@ -656,6 +703,12 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
         client.view?.add(this.clueState(card.id));
       }
     }
+    if (characterId) {
+      for (const w of this.whispers.involving(characterId)) {
+        const entry = this.state.whispers.get(w.id);
+        if (entry) client.view?.add(entry);
+      }
+    }
     this.sendScript(client);
     this.sendTo(
       client,
@@ -664,8 +717,7 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
         (m) =>
           m.channel === "all" ||
           m.channel === "gm" ||
-          (!!characterId &&
-            (m.characterId === characterId || m.channel === `whisper:${characterId}`)),
+          (!!characterId && !!m.whisperMembers?.includes(characterId)),
       ),
     );
   }
@@ -1037,6 +1089,201 @@ export class MysteryRoom extends Room<{ state: GameState; client: MysteryClient 
     };
     this.pushChat(message);
     this.broadcast("chat:message", message);
+  }
+
+  /* ───────── 밀담 ───────── */
+
+  private whisperPhaseInfo(phase: Phase) {
+    const limits = whisperLimits(phase.kind === "discussion" ? phase.whisper : undefined);
+    return {
+      whisperMax: limits.maxParticipants,
+      whisperSec: limits.maxDurationSec,
+      whisperPerPlayer: limits.maxPerPlayer,
+    };
+  }
+
+  /** 페이즈가 바뀌면 열린 밀담을 모두 끝내고 새 페이즈 설정으로 다시 센다 */
+  private resetWhispers(phase: Phase) {
+    const ended = this.whispers.reset(
+      whisperLimits(phase.kind === "discussion" ? phase.whisper : undefined),
+    );
+    for (const w of ended) this.dropWhisper(w.id);
+    this.syncWhispering();
+  }
+
+  /** 초대를 받은 사람에게 알리고, 답이 없으면 만료시킨다. 봇은 잠시 뒤 수락한다 */
+  private onInvited(whisper: WhisperRecord, from: string, target: string) {
+    const bot = this.playerByCharacter(target)?.isBot;
+    this.whisperNotice(whisper, `${josa(this.characterName(target), "을/를")} 밀담에 초대했습니다`);
+    const client = this.clientByCharacter(target);
+    if (client)
+      this.sendTo(client, "whisper:invited", { whisperId: whisper.id, fromCharacterId: from });
+    this.addWhisperTimer(
+      whisper.id,
+      this.clock.setTimeout(() => {
+        if (!this.whispers.whispers.get(whisper.id)?.invited.includes(target)) return;
+        this.whisperNotice(
+          whisper,
+          `${josa(this.characterName(target), "이/가")} 초대에 답하지 않았습니다`,
+        );
+        this.respondWhisper(target, whisper.id, false, true);
+      }, WHISPER_INVITE_SEC * 1000),
+    );
+    if (bot) {
+      this.addWhisperTimer(
+        whisper.id,
+        this.clock.setTimeout(() => {
+          if (this.respondWhisper(target, whisper.id, true)) return;
+          const current = this.whispers.whispers.get(whisper.id);
+          if (current) this.botWhisper(current, target);
+        }, BOT_ACTION_MS),
+      );
+    }
+  }
+
+  /** 초대에 답한다. 실패하면 이유를 돌려준다 */
+  private respondWhisper(characterId: string, whisperId: string, accept: boolean, silent = false) {
+    const result = this.whispers.respond(characterId, whisperId, accept);
+    if (!result.ok) return result.error;
+    const { whisper, started, ended, left } = result.value;
+    if (left) this.afterLeave(characterId, left.whisper, left.ended);
+    const name = this.characterName(characterId);
+    if (!accept) {
+      if (!silent) this.whisperNotice(whisper, `${josa(name, "이/가")} 밀담을 거절했습니다`);
+      if (ended) this.whisperNotice(whisper, "밀담이 열리지 않았습니다", [whisper.hostId]);
+    } else {
+      this.whisperNotice(
+        whisper,
+        started
+          ? `${josa(name, "이/가")} 수락해 밀담이 열렸습니다. 여기서 나눈 대화는 참여자에게만 보입니다`
+          : `${josa(name, "이/가")} 밀담에 들어왔습니다`,
+      );
+      if (started && whisper.endsAt > 0) {
+        this.addWhisperTimer(
+          whisper.id,
+          this.clock.setTimeout(() => {
+            const current = this.whispers.whispers.get(whisper.id);
+            if (!current) return;
+            this.whisperNotice(current, "밀담 시간이 끝났습니다");
+            this.whispers.end(whisper.id);
+            this.dropWhisper(whisper.id);
+            this.syncWhispering();
+          }, whisper.endsAt - Date.now()),
+        );
+      }
+    }
+    if (ended) this.dropWhisper(whisper.id);
+    else this.syncWhisper(whisper);
+    this.syncWhispering();
+    return null;
+  }
+
+  private afterLeave(characterId: string, whisper: WhisperRecord, ended: boolean) {
+    this.whisperNotice(
+      whisper,
+      ended
+        ? `${josa(this.characterName(characterId), "이/가")} 나가 밀담이 끝났습니다`
+        : `${josa(this.characterName(characterId), "이/가")} 밀담에서 나갔습니다`,
+    );
+    if (ended) this.dropWhisper(whisper.id);
+    else this.syncWhisper(whisper);
+    // 나간 사람은 더는 이 밀담을 볼 수 없다
+    this.syncWhispering();
+  }
+
+  /** 밀담 기록을 상태에 옮기고, 들어가 있거나 초대받은 사람에게만 보이게 한다 */
+  private syncWhisper(whisper: WhisperRecord) {
+    let entry = this.state.whispers.get(whisper.id);
+    if (!entry) {
+      entry = new WhisperInfo({ id: whisper.id, hostId: whisper.hostId });
+      this.state.whispers.set(whisper.id, entry);
+    }
+    entry.startedAt = whisper.startedAt;
+    entry.endsAt = whisper.endsAt;
+    entry.members.clear();
+    for (const id of whisper.members) entry.members.push(id);
+    entry.invited.clear();
+    for (const id of whisper.invited) entry.invited.push(id);
+
+    const involved = new Set([...whisper.members, ...whisper.invited]);
+    const viewers = this.whisperViewers.get(whisper.id) ?? new Set<string>();
+    for (const id of viewers) {
+      if (involved.has(id)) continue;
+      this.clientByCharacter(id)?.view?.remove(entry);
+      viewers.delete(id);
+    }
+    for (const id of involved) {
+      if (viewers.has(id)) continue;
+      this.clientByCharacter(id)?.view?.add(entry);
+      viewers.add(id);
+    }
+    this.whisperViewers.set(whisper.id, viewers);
+  }
+
+  /** 끝난 밀담을 상태에서 지우고 타이머를 멈춘다 */
+  private dropWhisper(whisperId: string) {
+    for (const timer of this.whisperTimers.get(whisperId) ?? []) timer.clear();
+    this.whisperTimers.delete(whisperId);
+    const entry = this.state.whispers.get(whisperId);
+    if (entry) {
+      for (const id of this.whisperViewers.get(whisperId) ?? []) {
+        this.clientByCharacter(id)?.view?.remove(entry);
+      }
+      this.state.whispers.delete(whisperId);
+    }
+    this.whisperViewers.delete(whisperId);
+  }
+
+  private addWhisperTimer(whisperId: string, timer: Timer) {
+    const timers = this.whisperTimers.get(whisperId) ?? [];
+    timers.push(timer);
+    this.whisperTimers.set(whisperId, timers);
+  }
+
+  /** 열린 밀담에 들어가 있는지만 공개한다 */
+  private syncWhispering() {
+    for (const p of this.state.players.values()) {
+      const w = p.characterId ? this.whispers.memberOf(p.characterId) : undefined;
+      p.whispering = !!w && w.startedAt > 0;
+    }
+  }
+
+  /** 밀담 메시지를 그 밀담에 들어가 있는 사람에게만 보낸다 */
+  private sendWhisper(whisper: WhisperRecord, message: ChatMessage) {
+    this.pushChat(message);
+    for (const id of message.whisperMembers ?? whisper.members) {
+      const client = this.clientByCharacter(id);
+      if (client) this.sendTo(client, "chat:message", message);
+    }
+  }
+
+  /** 밀담 안내 (그 밀담 참여자에게만) */
+  private whisperNotice(whisper: WhisperRecord, text: string, to: string[] = whisper.members) {
+    if (to.length === 0) return;
+    this.sendWhisper(whisper, {
+      id: `${Date.now()}-whisper-${whisper.id}-${this.chatLog.length}`,
+      channel: `whisper:${whisper.id}`,
+      fromSessionId: null,
+      characterId: null,
+      text,
+      sentAt: Date.now(),
+      whisperMembers: [...to],
+    });
+  }
+
+  /** 봇이 밀담에 말한다 */
+  private botWhisper(whisper: WhisperRecord, characterId: string) {
+    const entry = this.bots().find(([, p]) => p.characterId === characterId);
+    if (!entry || !whisper.members.includes(characterId)) return;
+    this.sendWhisper(whisper, {
+      id: `${Date.now()}-${entry[0]}-${whisper.id}`,
+      channel: `whisper:${whisper.id}`,
+      fromSessionId: entry[0],
+      characterId,
+      text: BOT_WHISPER_LINE,
+      sentAt: Date.now(),
+      whisperMembers: [...whisper.members],
+    });
   }
 
   /* ───────── 목표 결산·결말 ───────── */
