@@ -10,7 +10,6 @@ import {
   MessagesSquare,
   Mic,
   MicOff,
-  NotebookPen,
   Users,
 } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
@@ -24,7 +23,6 @@ import {
   Countdown,
   Eyebrow,
   formatClock,
-  Notes,
   phaseTone,
   TopBar,
   useNow,
@@ -461,7 +459,7 @@ export function Discussion({ ctx }: { ctx: GameContext }) {
   const [holder, setHolder] = useState("all");
   const [detail, setDetail] = useState<ClueCardInfo | null>(null);
   const [giving, setGiving] = useState<ClueCardInfo | null>(null);
-  const { tab, setTab, panel } = useMobileTabs<"board" | "chat" | "note">("board");
+  const { tab, setTab, panel } = useMobileTabs<"board" | "chat">("board");
   const round = phase?.round ?? 1;
   const tone = phaseTone("discussion");
   const seated = state.characters.filter((c) => ctx.playerOf(c.id));
@@ -513,7 +511,7 @@ export function Discussion({ ctx }: { ctx: GameContext }) {
           );
         })}
       </section>
-      <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)_300px]">
+      <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]">
         <main className={cn("min-h-0 flex-1 flex-col overflow-y-auto", panel("board"))}>
           <div className="space-y-4 px-4 py-5 sm:px-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
@@ -630,17 +628,6 @@ export function Discussion({ ctx }: { ctx: GameContext }) {
             placeholder="음성이 어려울 때 채팅으로 남기세요"
           />
         </section>
-        <aside
-          className={cn(
-            "min-h-0 flex-1 flex-col overflow-y-auto border-l border-border p-4",
-            panel("note"),
-          )}
-        >
-          <Notes
-            storageKey={`mm:note:${ctx.roomId}:${myCharacterId}`}
-            className="min-h-[60dvh] flex-1"
-          />
-        </aside>
       </div>
       <ActionBar
         eyebrow="DISCUSSION"
@@ -656,7 +643,6 @@ export function Discussion({ ctx }: { ctx: GameContext }) {
         tabs={[
           { id: "board", label: "단서판", icon: <LayoutGrid size={16} /> },
           { id: "chat", label: "토론", icon: <MessagesSquare size={16} /> },
-          { id: "note", label: "메모", icon: <NotebookPen size={16} /> },
         ]}
       />
       <ClueDetail
@@ -764,7 +750,7 @@ export function Statements({ ctx }: { ctx: GameContext }) {
   const { state, phase, myCharacterId } = ctx;
   const { clues, publicCards } = useClues(ctx);
   const [detail, setDetail] = useState<ClueCardInfo | null>(null);
-  const { tab, setTab, panel } = useMobileTabs<"stage" | "chat" | "note">("stage");
+  const { tab, setTab, panel } = useMobileTabs<"stage" | "chat">("stage");
   const now = useNow();
   const tone = phaseTone("final-statements");
   const speaker = ctx.character(state.speakerCharacterId);
@@ -904,9 +890,6 @@ export function Statements({ ctx }: { ctx: GameContext }) {
             placeholder="발언 내용을 채팅으로 남길 수도 있어요"
           />
         </aside>
-        <aside className={cn("min-h-0 flex-1 flex-col p-4", panel("note"), "lg:hidden")}>
-          <Notes storageKey={`mm:note:${ctx.roomId}:${myCharacterId}`} className="flex-1" />
-        </aside>
       </div>
       <ActionBar
         eyebrow={speaking ? "SPEAKING" : "LISTENING"}
@@ -939,7 +922,6 @@ export function Statements({ ctx }: { ctx: GameContext }) {
         tabs={[
           { id: "stage", label: "진술", icon: <Users size={16} /> },
           { id: "chat", label: "기록", icon: <MessagesSquare size={16} /> },
-          { id: "note", label: "메모", icon: <NotebookPen size={16} /> },
         ]}
       />
       <ClueDetail

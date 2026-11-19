@@ -349,49 +349,6 @@ export function ClueCard({
   );
 }
 
-/** 수사 메모. 이 브라우저에만 저장된다 */
-export function Notes({ storageKey, className }: { storageKey: string; className?: string }) {
-  const [text, setText] = useState("");
-  useEffect(() => {
-    try {
-      setText(localStorage.getItem(storageKey) ?? "");
-    } catch {}
-  }, [storageKey]);
-  return (
-    <div
-      className={cn(
-        "flex flex-col rounded-[6px] border border-[var(--paper-rule)] bg-[var(--paper-surface)] text-[var(--paper-ink)] shadow-[var(--shadow-paper)]",
-        className,
-      )}
-    >
-      <div className="flex items-baseline justify-between px-4 pt-3">
-        <label htmlFor={`note-${storageKey}`} className="font-serif text-lg font-bold">
-          수사 메모
-        </label>
-        <span className="font-mono text-[11px] text-[var(--paper-ink-muted)]">
-          {text.length}/2000
-        </span>
-      </div>
-      <textarea
-        id={`note-${storageKey}`}
-        value={text}
-        maxLength={2000}
-        onChange={(e) => {
-          setText(e.target.value);
-          try {
-            localStorage.setItem(storageKey, e.target.value);
-          } catch {}
-        }}
-        placeholder="떠오르는 의문, 엇갈리는 증언, 확인할 시각을 적어 두세요."
-        className="nm-note-lines min-h-40 flex-1 resize-none bg-transparent px-4 pb-4 pt-1 font-mono text-sm leading-7 outline-none placeholder:text-[var(--paper-ink-muted)]"
-      />
-      <p className="border-t border-dashed border-[var(--paper-rule)] px-4 py-2 text-[11px] text-[var(--paper-ink-muted)]">
-        메모는 나만 볼 수 있어요. 이 브라우저에 저장돼요.
-      </p>
-    </div>
-  );
-}
-
 export function Toasts({
   toasts,
   onDismiss,
