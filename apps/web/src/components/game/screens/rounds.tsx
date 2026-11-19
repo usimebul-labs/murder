@@ -14,9 +14,10 @@ import {
   MicOff,
   Users,
 } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import { josa } from "@/lib/josa";
 import { ChatPanel } from "../chat";
+import { DiscussionBoard } from "../clue-board";
 import {
   ActionBar,
   Avatar,
@@ -600,8 +601,11 @@ function HostAdvance({ ctx, label = "다음 단계로" }: { ctx: GameContext; la
 export function Discussion({ ctx }: { ctx: GameContext }) {
   const { state, phase, myCharacterId } = ctx;
   const { cards, clues, mine, publicCards } = useClues(ctx);
-  const [view, setView] = useState<"public" | "mine">("public");
-  const [holder, setHolder] = useState("all");
+  const visible = useMemo(
+    () => [...publicCards, ...mine.filter((c) => !c.isPublic)],
+    [publicCards, mine],
+  );
+  const boardRef = useRef<HTMLElement>(null);
   const [detail, setDetail] = useState<ClueCardInfo | null>(null);
   const [giving, setGiving] = useState<ClueCardInfo | null>(null);
   const { tab, setTab, panel } = useMobileTabs<"board" | "chat">("board");
@@ -609,10 +613,6 @@ export function Discussion({ ctx }: { ctx: GameContext }) {
   const tone = phaseTone("discussion");
   const seated = state.characters.filter((c) => ctx.playerOf(c.id));
   const allowGive = !!myCharacterId;
-  const list = (view === "public" ? publicCards : mine).filter(
-    (c) => holder === "all" || (c.sharedBy || c.holderId) === holder,
-  );
-  const lastRoundCount = cards.filter((c) => c.round === round && c.holderId).length;
 
   return (
     <div className="flex h-dvh flex-col">
@@ -658,103 +658,17 @@ export function Discussion({ ctx }: { ctx: GameContext }) {
         })}
       </section>
       <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]">
-        <main className={cn("min-h-0 flex-1 flex-col overflow-y-auto", panel("board"))}>
-          <div className="space-y-4 px-4 py-5 sm:px-6">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <Eyebrow>CLUE BOARD · ROUND 01–{pad(round)}</Eyebrow>
-                <h2 className="mt-1 font-serif text-2xl font-bold">단서판</h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  이번 라운드 수집 {lastRoundCount}장 · 공개 {publicCards.length}장
-                </p>
-              </div>
-              <div
-                className="flex rounded-md border border-border bg-[var(--input-bg)] p-[3px]"
-                role="tablist"
-              >
-                {(
-                  [
-                    ["public", "공개 단서", publicCards.length],
-                    ["mine", "내 단서", mine.length],
-                  ] as const
-                ).map(([id, label, n]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="tab"
-                    aria-selected={view === id}
-                    onClick={() => setView(id)}
-                    className={cn(
-                      "inline-flex h-9 items-center gap-1.5 rounded-[3px] px-3 text-sm font-semibold text-muted-foreground",
-                      view === id && "bg-accent text-foreground",
-                    )}
-                  >
-                    {label}{" "}
-                    <span className="rounded-full bg-muted px-1.5 font-mono text-[11px]">{n}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            {view === "public" && (
-              <div className="flex flex-wrap gap-1.5">
-                {[{ id: "all", name: "전체" }, ...seated].map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    aria-pressed={holder === c.id}
-                    onClick={() => setHolder(c.id)}
-                    className={cn(
-                      "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold",
-                      holder === c.id
-                        ? "border-primary text-primary"
-                        : "border-border text-muted-foreground",
-                    )}
-                  >
-                    {c.id !== "all" && <Avatar character={ctx.character(c.id)} size={16} />}
-                    {c.name.split(" ")[0]}
-                  </button>
-                ))}
-              </div>
-            )}
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {list.map((card) => {
-                const clue = clues[card.id];
-                const isMine = card.holderId === myCharacterId;
-                return (
-                  <li key={card.id}>
-                    <ClueCard
-                      card={card}
-                      clue={clue}
-                      className="h-full w-full"
-                      onClick={() => setDetail(card)}
-                      holder={
-                        card.sharedBy ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            <Avatar character={ctx.character(card.sharedBy)} size={18} />
-                            {card.sharedBy === myCharacterId
-                              ? "당신이 공개"
-                              : `${ctx.character(card.sharedBy)?.name} 공개`}
-                          </span>
-                        ) : (
-                          <HolderTag ctx={ctx} card={card} />
-                        )
-                      }
-                      footer={
-                        isMine && !card.isPublic ? (
-                          <span className="font-semibold text-[var(--secret)]">비공개</span>
-                        ) : undefined
-                      }
-                    />
-                  </li>
-                );
-              })}
-              {list.length === 0 && (
-                <li className="col-span-full rounded-[6px] border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
-                  {view === "public" ? "아직 공개된 단서가 없습니다" : "가진 단서가 없습니다"}
-                </li>
-              )}
-            </ul>
-          </div>
+        <main
+          ref={boardRef}
+          className={cn("min-h-0 flex-1 flex-col overflow-y-auto", panel("board"))}
+        >
+          <DiscussionBoard
+            ctx={ctx}
+            cards={visible}
+            clues={clues}
+            scrollRef={boardRef}
+            onOpen={setDetail}
+          />
         </main>
         <section className={cn("min-h-0 flex-1 flex-col border-l border-border", panel("chat"))}>
           <div className="flex h-12 flex-none items-center justify-between border-b border-border px-4">
