@@ -2,10 +2,10 @@ import type { ScenarioInput } from "./schema.js";
 
 /**
  * 데모 시나리오 CASE 01 "블랙우드 저택의 마지막 만찬" (6인, 3라운드, 오리지널).
- * 스키마의 모든 기능(라운드별 장소 개방, 조건부 해금, 자동 배포, 자동·판정단 목표, 결말 분기)을 한 번씩 쓴다.
+ * 스키마의 모든 기능(장소·인물별 탐색, 단계별 수집 개수, 조건부 자동 배포, 자동·판정단 목표, 결말 분기)을 한 번씩 쓴다.
  */
 export const blackwoodManor = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   id: "blackwood-manor",
   meta: {
     title: "블랙우드 저택의 마지막 만찬",
@@ -74,7 +74,6 @@ export const blackwoodManor = {
         w: 30,
         h: 30,
       },
-      openFromRound: 1,
     },
     {
       id: "dining",
@@ -86,7 +85,6 @@ export const blackwoodManor = {
         w: 40,
         h: 25,
       },
-      openFromRound: 1,
     },
     {
       id: "hall",
@@ -98,7 +96,6 @@ export const blackwoodManor = {
         w: 25,
         h: 20,
       },
-      openFromRound: 1,
     },
     {
       id: "drawing",
@@ -110,7 +107,6 @@ export const blackwoodManor = {
         w: 22,
         h: 25,
       },
-      openFromRound: 1,
     },
     {
       id: "servants",
@@ -122,7 +118,6 @@ export const blackwoodManor = {
         w: 35,
         h: 20,
       },
-      openFromRound: 1,
     },
     {
       id: "greenhouse",
@@ -134,7 +129,6 @@ export const blackwoodManor = {
         w: 25,
         h: 22,
       },
-      openFromRound: 2,
     },
     {
       id: "guest-wing",
@@ -146,7 +140,6 @@ export const blackwoodManor = {
         w: 35,
         h: 20,
       },
-      openFromRound: 3,
     },
   ],
   characters: [
@@ -865,9 +858,6 @@ export const blackwoodManor = {
       body: "바닥에 탁한 갈색 찌꺼기가 남아 있다. 쓴 풀 냄새가 난다. 디캔터의 술보다 색이 확연히 탁하다.",
       distribution: "search",
       locationId: "study",
-      unlock: {
-        fromRound: 1,
-      },
       isKey: true,
       imageKey: "scenarios/blackwood-manor/clues/ev-01.svg",
     },
@@ -880,9 +870,6 @@ export const blackwoodManor = {
       body: "3분의 2가 남아 있다. 색도 냄새도 평소와 같다. 하인들 말로는 주인님은 늘 21:40쯤 첫 잔을 따라 두고 식혀 드신다.",
       distribution: "search",
       locationId: "study",
-      unlock: {
-        fromRound: 1,
-      },
       isKey: true,
       imageKey: "scenarios/blackwood-manor/clues/ev-02.svg",
     },
@@ -895,9 +882,7 @@ export const blackwoodManor = {
       body: '10월 14일: "21:00 E. 유언장 메모 / 21:45 V. — 마지막 기회 / 23:00 아서 진찰"',
       distribution: "search",
       locationId: "study",
-      unlock: {
-        fromRound: 1,
-      },
+      characterIds: ["arthur", "eleanor", "victor"],
       isKey: true,
       imageKey: "scenarios/blackwood-manor/clues/ev-03.svg",
     },
@@ -910,9 +895,7 @@ export const blackwoodManor = {
       body: "은 커프스 단추 한 짝. 'H.B.' 이니셜이 새겨져 있다.",
       distribution: "search",
       locationId: "study",
-      unlock: {
-        fromRound: 1,
-      },
+      characterIds: ["henry"],
       imageKey: "scenarios/blackwood-manor/clues/ev-04.svg",
     },
     {
@@ -924,9 +907,6 @@ export const blackwoodManor = {
       body: '에드먼드의 필체. "내일 아침 10시 새 유언장에 서명한다. 신탁은 런던 하트 앤 코에 넘기고 지난 장부를 모두 감사받는다. 그리고 이 집에 새 가족을 소개하겠다."',
       distribution: "search",
       locationId: "dining",
-      unlock: {
-        fromRound: 1,
-      },
       imageKey: "scenarios/blackwood-manor/clues/ev-05.svg",
     },
     {
@@ -938,9 +918,7 @@ export const blackwoodManor = {
       body: "외투걸이 옆 의자 위. 잠금장치가 없다. 청진기와 진정제가 있고, 약병을 꽂는 칸 하나가 비어 있다. 'Dr. A. Blackwood' 이름표.",
       distribution: "search",
       locationId: "hall",
-      unlock: {
-        fromRound: 1,
-      },
+      characterIds: ["arthur"],
       imageKey: "scenarios/blackwood-manor/clues/ev-06.svg",
     },
     {
@@ -952,9 +930,7 @@ export const blackwoodManor = {
       body: '"클라라가 9시에 약 컵이랑 디캔터를 가져갔어요. 약은 아서 도련님이 정해 준 대로 10방울, 제가 옆에서 봤어요. 디캔터도 제가 채웠고요."',
       distribution: "search",
       locationId: "servants",
-      unlock: {
-        fromRound: 1,
-      },
+      characterIds: ["clara", "arthur"],
       imageKey: "scenarios/blackwood-manor/clues/ev-07.svg",
     },
     {
@@ -966,9 +942,7 @@ export const blackwoodManor = {
       body: '"마님이 런던에서 오는 편지를 몰래 받으신대요. 오늘 오후 주인님이 그 편지를 빼앗으셨다던데."',
       distribution: "search",
       locationId: "drawing",
-      unlock: {
-        fromRound: 1,
-      },
+      characterIds: ["margaret"],
       imageKey: "scenarios/blackwood-manor/clues/ev-08.svg",
     },
     {
@@ -980,13 +954,7 @@ export const blackwoodManor = {
       body: '흔들리는 글씨. "22:25 — 헨리에게 또 소리쳤다. 속이 뒤집히고 눈앞이 노랗게 번진다. 아서를 불러야겠다."',
       distribution: "search",
       locationId: "study",
-      unlock: {
-        fromRound: 2,
-        when: {
-          kind: "clue-collected",
-          clueId: "ev-03",
-        },
-      },
+      characterIds: ["henry", "arthur"],
       isKey: true,
       imageKey: "scenarios/blackwood-manor/clues/ev-09.svg",
     },
@@ -1021,9 +989,6 @@ export const blackwoodManor = {
       body: "갈색으로 얼룩진 작은 코르크 마개. 붙어 있는 라벨 조각에 'Tinct. Digit…'라고 적혀 있다.",
       distribution: "search",
       locationId: "hall",
-      unlock: {
-        fromRound: 2,
-      },
       isKey: true,
       imageKey: "scenarios/blackwood-manor/clues/ev-11.svg",
     },
@@ -1036,9 +1001,7 @@ export const blackwoodManor = {
       body: '"11시 조금 전에 온실에 불이 켜져 있었어요. 아서 도련님이 화분 사이에서 뭘 하고 계시더군요."',
       distribution: "search",
       locationId: "servants",
-      unlock: {
-        fromRound: 2,
-      },
+      characterIds: ["arthur"],
       imageKey: "scenarios/blackwood-manor/clues/ev-12.svg",
     },
     {
@@ -1050,9 +1013,7 @@ export const blackwoodManor = {
       body: '요크 마권업자 앞. "금 3,000파운드, 10월 31일까지 상환. — H. 블랙우드"',
       distribution: "search",
       locationId: "drawing",
-      unlock: {
-        fromRound: 2,
-      },
+      characterIds: ["henry"],
       imageKey: "scenarios/blackwood-manor/clues/ev-13.svg",
     },
     {
@@ -1064,9 +1025,7 @@ export const blackwoodManor = {
       body: '"만찬 끝나고 클라라가 헨리 도련님한테 돈을 받는 걸 봤어요. 한두 번이 아니라던데."',
       distribution: "search",
       locationId: "drawing",
-      unlock: {
-        fromRound: 2,
-      },
+      characterIds: ["clara", "henry"],
       imageKey: "scenarios/blackwood-manor/clues/ev-14.svg",
     },
     {
@@ -1078,9 +1037,7 @@ export const blackwoodManor = {
       body: "\"9시 50분쯤 클라라가 서재에서 나올 때 안에서 빅터 씨 목소리가 들렸습니다. 10시 10분엔 헨리 도련님이 고함을 지르셨고, 10시 20분쯤 '차라리 죽어 버리시지!' 하고 문을 닫고 나가셨지요.\"",
       distribution: "search",
       locationId: "dining",
-      unlock: {
-        fromRound: 2,
-      },
+      characterIds: ["clara", "victor", "henry"],
       isKey: true,
       imageKey: "scenarios/blackwood-manor/clues/ev-15.svg",
     },
@@ -1093,9 +1050,7 @@ export const blackwoodManor = {
       body: "눈물에 번진 오래된 편지와 'E.G.' 수가 놓인 손수건. \"엘리너, 네 아버지는 에드먼드 블랙우드란다. 원망하지 말아라. — 엄마가\"",
       distribution: "search",
       locationId: "greenhouse",
-      unlock: {
-        fromRound: 2,
-      },
+      characterIds: ["eleanor"],
       imageKey: "scenarios/blackwood-manor/clues/ev-16.svg",
     },
     {
@@ -1107,9 +1062,7 @@ export const blackwoodManor = {
       body: "엘리너의 필체로 받아 적은 메모. 재산을 헨리·아서·엘리너에게 3분의 1씩. 마거릿에게는 연금만. 신탁 관리인을 빅터 헤일에서 하트 앤 코로 교체.",
       distribution: "search",
       locationId: "study",
-      unlock: {
-        fromRound: 2,
-      },
+      characterIds: ["eleanor", "margaret", "victor"],
       imageKey: "scenarios/blackwood-manor/clues/ev-17.svg",
     },
     {
@@ -1121,13 +1074,7 @@ export const blackwoodManor = {
       body: "흙에 반쯤 묻힌 작은 갈색 병. 'Tinct. Digitalis — Dr. A. Blackwood'. 마개가 없고 거의 비었다.",
       distribution: "search",
       locationId: "greenhouse",
-      unlock: {
-        fromRound: 3,
-        when: {
-          kind: "clue-collected",
-          clueId: "ev-12",
-        },
-      },
+      characterIds: ["arthur"],
       isKey: true,
       imageKey: "scenarios/blackwood-manor/clues/ev-18.svg",
     },
@@ -1140,9 +1087,7 @@ export const blackwoodManor = {
       body: "'V.H.' 자수가 남은 손수건. 갈색 얼룩이 배어 있고, 브랜디 잔과 같은 쓴 풀 냄새가 난다.",
       distribution: "search",
       locationId: "guest-wing",
-      unlock: {
-        fromRound: 3,
-      },
+      characterIds: ["victor"],
       isKey: true,
       imageKey: "scenarios/blackwood-manor/clues/ev-19.svg",
     },
@@ -1155,9 +1100,7 @@ export const blackwoodManor = {
       body: '에드먼드의 필체. "신탁 계좌 1932~37 차액 £4,200. 하트 앤 코에 넘기기 전 내일 아침까지 해명할 것. — E.B."',
       distribution: "search",
       locationId: "guest-wing",
-      unlock: {
-        fromRound: 3,
-      },
+      characterIds: ["victor"],
       isKey: true,
       imageKey: "scenarios/blackwood-manor/clues/ev-20.svg",
     },
@@ -1170,9 +1113,7 @@ export const blackwoodManor = {
       body: "금고 문이 반쯤 열려 있다. 신탁 장부의 1932~37년 쪽마다 빨간 연필로 표시가 되어 있다. 관리인 서명은 모두 V. 헤일.",
       distribution: "search",
       locationId: "study",
-      unlock: {
-        fromRound: 3,
-      },
+      characterIds: ["victor"],
       isKey: true,
       imageKey: "scenarios/blackwood-manor/clues/ev-21.svg",
     },
@@ -1185,9 +1126,7 @@ export const blackwoodManor = {
       body: '마거릿이 줄리언에게 받은 편지 묶음과 서재 서랍 열쇠. 맨 위 편지: "다음 달이면 당신은 자유예요." 오늘 오후 압수된 바로 그 편지다.',
       distribution: "search",
       locationId: "drawing",
-      unlock: {
-        fromRound: 3,
-      },
+      characterIds: ["margaret"],
       imageKey: "scenarios/blackwood-manor/clues/ev-22.svg",
     },
     {
@@ -1199,9 +1138,7 @@ export const blackwoodManor = {
       body: '가방 안주머니의 수첩. "디기탈리스 과량 복용: 30분~2시간 뒤 구토, 노란 시야, 부정맥. 1~3시간 안에 사망 가능."',
       distribution: "search",
       locationId: "hall",
-      unlock: {
-        fromRound: 3,
-      },
+      characterIds: ["arthur"],
       isKey: true,
       imageKey: "scenarios/blackwood-manor/clues/ev-23.svg",
     },

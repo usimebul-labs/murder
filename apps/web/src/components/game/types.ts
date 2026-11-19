@@ -88,6 +88,11 @@ export interface ClueCardInfo {
   category: ClueCategory;
   source: string;
   locationId: string;
+  /** 관련 인물 id (인물별 탐색) */
+  characterIds: string[];
+  /** search = 단서 보드에서 줍는 단서, public = 공통 자료, auto = 자동 배포 */
+  distribution: "search" | "public" | "auto";
+  /** 탐색 단서는 수집된 라운드(보드 위면 0), 그 밖의 단서는 나온 라운드 */
   round: number;
   holderId: string;
   isPublic: boolean;

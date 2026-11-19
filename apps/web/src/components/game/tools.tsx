@@ -62,13 +62,11 @@ export function FloorPlan({
   selected,
   onSelect,
   counts,
-  round,
 }: {
   ctx: GameContext;
   selected: string;
   onSelect: (id: string) => void;
   counts: Record<string, number>;
-  round: number;
 }) {
   const scenario = ctx.scenario;
   if (!scenario?.meta.mapImageKey) return null;
@@ -81,20 +79,15 @@ export function FloorPlan({
         className="h-full w-full object-contain"
       />
       {scenario.locations.map((l) => {
-        const open = round >= l.openFromRound;
         const active = selected === l.id;
         return (
           <button
             key={l.id}
             type="button"
-            disabled={!open}
             onClick={() => onSelect(active ? "all" : l.id)}
             aria-pressed={active}
             className={cn(
-              "absolute flex flex-col items-center justify-center gap-0.5 rounded-[3px] border text-center transition-colors",
-              open
-                ? "hover:bg-[color-mix(in_oklch,var(--brass-400)_14%,transparent)]"
-                : "cursor-not-allowed",
+              "absolute flex flex-col items-center justify-center gap-0.5 rounded-[3px] border text-center transition-colors hover:bg-[color-mix(in_oklch,var(--brass-400)_14%,transparent)]",
               active
                 ? "border-primary bg-[color-mix(in_oklch,var(--brass-400)_18%,transparent)]"
                 : "border-transparent",
@@ -106,22 +99,11 @@ export function FloorPlan({
               height: `${l.map.h}%`,
             }}
           >
-            <span
-              className={cn(
-                "rounded-[2px] px-1.5 py-0.5 text-[11px] font-semibold shadow-[var(--shadow-xs)] sm:text-xs",
-                open
-                  ? "bg-[var(--ink-900)]/85 text-[var(--paper-100)]"
-                  : "bg-[var(--ink-900)]/70 text-muted-foreground",
-              )}
-            >
+            <span className="rounded-[2px] bg-[var(--ink-900)]/85 px-1.5 py-0.5 text-[11px] font-semibold text-[var(--paper-100)] shadow-[var(--shadow-xs)] sm:text-xs">
               {l.name}
-              {open ? (
-                counts[l.id] ? (
-                  <span className="ml-1 font-mono text-primary">{counts[l.id]}</span>
-                ) : null
-              ) : (
-                <span className="ml-1 font-mono text-[10px]">{l.openFromRound}R</span>
-              )}
+              {counts[l.id] ? (
+                <span className="ml-1 font-mono text-primary">{counts[l.id]}</span>
+              ) : null}
             </span>
           </button>
         );

@@ -63,7 +63,11 @@ export const ClueCard = schema(
     category: t.string().default(""),
     source: t.string().default(""),
     locationId: t.string().default(""),
-    /** 보드에 처음 나온 라운드 */
+    /** 관련 인물 id. 단서 보드의 인물별 탐색에 쓴다 */
+    characterIds: t.array("string"),
+    /** search = 단서 보드에서 줍는 단서, public = 공통 자료, auto = 자동 배포 */
+    distribution: t.string().default("search"),
+    /** 탐색 단서는 수집된 라운드(아직 보드 위면 0), 그 밖의 단서는 나온 라운드 */
     round: t.uint8().default(0),
     /** 가진 캐릭터 id. 비어 있으면 아직 보드 위에 있다 */
     holderId: t.string().default(""),

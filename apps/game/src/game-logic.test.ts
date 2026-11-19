@@ -4,6 +4,7 @@ import {
   autoUnlockedClues,
   boardClues,
   castRoles,
+  cluesAboutCharacter,
   cluesAtLocation,
   currentRound,
   type GameFacts,
@@ -35,31 +36,28 @@ describe("game-logic", () => {
 
   it("조사 전에는 장소 단서를 얻을 수 없다", () => {
     expect(cluesAtLocation(scenario, "study", "henry", facts({ round: 0 }))).toHaveLength(0);
+  });
+
+  it("장소는 첫 탐색부터 모든 단서가 열려 있다", () => {
     expect(ids(cluesAtLocation(scenario, "study", "henry", facts()))).toEqual([
       "ev-01",
       "ev-02",
       "ev-03",
       "ev-04",
+      "ev-09",
+      "ev-17",
+      "ev-21",
     ]);
+    expect(cluesAtLocation(scenario, "guest-wing", "henry", facts())).toHaveLength(2);
   });
 
-  it("장소는 정해진 라운드에 열린다", () => {
-    expect(cluesAtLocation(scenario, "guest-wing", "henry", facts({ round: 2 }))).toHaveLength(0);
-    expect(cluesAtLocation(scenario, "guest-wing", "henry", facts({ round: 3 }))).toHaveLength(2);
-  });
-
-  it("선행 단서를 누군가 얻으면 연결된 단서가 보드에 나타난다", () => {
-    const before = ids(cluesAtLocation(scenario, "study", "henry", facts({ round: 2 })));
-    expect(before).not.toContain("ev-09");
-    const after = ids(
-      cluesAtLocation(
-        scenario,
-        "study",
-        "henry",
-        facts({ round: 2, owned: new Map([["clara", new Set(["ev-03"])]]) }),
-      ),
+  it("인물별로도 단서를 찾을 수 있다", () => {
+    const victor = ids(cluesAboutCharacter(scenario, "victor", "henry", facts()));
+    expect(victor).toEqual(["ev-03", "ev-15", "ev-17", "ev-19", "ev-20", "ev-21"]);
+    const owned = new Map([["henry", new Set(["ev-19"])]]);
+    expect(ids(cluesAboutCharacter(scenario, "victor", "henry", facts({ owned })))).not.toContain(
+      "ev-19",
     );
-    expect(after).toContain("ev-09");
   });
 
   it("공통 자료는 모두에게, 자동 배포 단서는 대상 캐릭터에게만 간다", () => {
@@ -86,21 +84,14 @@ describe("game-logic", () => {
     expect(turnSequence(["a", "b"], 3, 2, "seat-rotating")).toEqual(["a", "b", "a", "b"]);
   });
 
-  it("보드에는 열린 장소의 해금된 탐색 단서만 나온다", () => {
-    const r1 = ids(boardClues(scenario, facts()));
-    expect(r1).toContain("ev-01");
-    expect(r1).not.toContain("ev-11");
-    expect(r1).not.toContain("ev-19");
-    expect(ids(boardClues(scenario, facts({ round: 3 })))).toContain("ev-19");
-  });
-
-  it("건넨 단서도 수집한 것으로 본다", () => {
-    const owned = new Map([["clara", new Set<string>()]]);
-    const collected = new Map([["clara", new Set(["ev-03"])]]);
-    const after = ids(
-      boardClues(scenario, { round: 2, owned, collected, publicClueIds: new Set() }),
-    );
-    expect(after).toContain("ev-09");
+  it("보드에는 탐색 단계와 상관없이 모든 탐색 단서가 나온다", () => {
+    const board = ids(boardClues(scenario));
+    expect(board).toContain("ev-01");
+    expect(board).toContain("ev-19");
+    expect(board).toContain("ev-23");
+    expect(board).not.toContain("ev-p1");
+    expect(board).not.toContain("ev-10");
+    expect(board).toHaveLength(22);
   });
 
   it("동표면 최다 득표자를 모두 돌려준다", () => {

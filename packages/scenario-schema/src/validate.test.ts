@@ -3,6 +3,7 @@ import { v1Sample } from "./__fixtures__/v1-sample.js";
 import {
   type Clue,
   migrateScenario,
+  SCHEMA_VERSION,
   sampleScenario,
   toPublicScenario,
   validateScenario,
@@ -37,22 +38,47 @@ describe("validateScenario", () => {
     expect(messages(s).some((m) => m.includes("ghost"))).toBe(true);
   });
 
-  it("없는 장소, 아직 닫힌 장소를 찾는다", () => {
+  it("없는 장소, 없는 관련 인물을 찾는다", () => {
     const s = clone();
     const clues = s.clues as unknown as Clue[];
     clues[1].locationId = "attic";
-    const victorRoom = clues.find((c) => c.id === "ev-19");
-    if (victorRoom) victorRoom.unlock = { fromRound: 1 };
+    clues[2].characterIds = ["ghost"];
     const m = messages(s);
     expect(m.some((x) => x.includes("attic"))).toBe(true);
-    expect(m.some((x) => x.includes("닫혀"))).toBe(true);
+    expect(m.some((x) => x.includes("ghost"))).toBe(true);
+  });
+
+  it("장소도 관련 인물도 없는 탐색 단서는 실패한다", () => {
+    const s = clone();
+    const clue = (s.clues as unknown as Clue[]).find((c) => c.id === "ev-04");
+    if (clue) {
+      clue.locationId = undefined;
+      clue.characterIds = [];
+    }
+    expect(messages(s).some((m) => m.includes("장소도 관련 인물도"))).toBe(true);
+  });
+
+  it("관련 인물만 있는 탐색 단서는 통과한다", () => {
+    const s = clone();
+    const clue = (s.clues as unknown as Clue[]).find((c) => c.id === "ev-04");
+    if (clue) clue.locationId = undefined;
+    expect(messages(s)).toEqual([]);
+  });
+
+  it("탐색 단서에 해금 조건을 두면 실패한다", () => {
+    const s = clone();
+    const clue = (s.clues as unknown as Clue[]).find((c) => c.id === "ev-19");
+    if (clue) clue.unlock = { fromRound: 3 };
+    expect(messages(s).some((m) => m.includes("해금 조건"))).toBe(true);
   });
 
   it("단서 해금 순환을 찾는다", () => {
     const s = clone();
     const clues = s.clues as unknown as Clue[];
-    const ev03 = clues.find((c) => c.id === "ev-03");
-    if (ev03) ev03.unlock = { fromRound: 1, when: { kind: "clue-collected", clueId: "ev-09" } };
+    const common = clues.find((c) => c.id === "ev-p1");
+    const auto = clues.find((c) => c.id === "ev-10");
+    if (common) common.unlock = { fromRound: 1, when: { kind: "clue-collected", clueId: "ev-10" } };
+    if (auto) auto.unlock = { fromRound: 1, when: { kind: "clue-public", clueId: "ev-p1" } };
     expect(messages(s).some((m) => m.includes("순환"))).toBe(true);
   });
 
@@ -105,8 +131,28 @@ describe("migrateScenario", () => {
     v2.schemaVersion = 2;
     for (const c of v2.characters) delete c.script.story;
     const up = migrateScenario(v2) as typeof v2;
-    expect(up.schemaVersion).toBe(3);
+    expect(up.schemaVersion).toBe(SCHEMA_VERSION);
     expect(up.characters.every((c) => Array.isArray(c.script.story))).toBe(true);
+    expect(messages(up)).toEqual([]);
+  });
+
+  it("v3 시나리오를 올리면 탐색 단서의 단계 구분이 사라진다", () => {
+    const v3 = structuredClone(sampleScenario) as unknown as {
+      schemaVersion: number;
+      locations: { openFromRound?: number }[];
+      clues: { id: string; distribution: string; characterIds?: string[]; unlock?: unknown }[];
+    };
+    v3.schemaVersion = 3;
+    for (const l of v3.locations) l.openFromRound = 2;
+    for (const c of v3.clues) {
+      delete c.characterIds;
+      if (c.distribution === "search") c.unlock = { fromRound: 3 };
+    }
+    const up = migrateScenario(v3) as typeof v3;
+    expect(up.schemaVersion).toBe(4);
+    expect(up.locations.every((l) => l.openFromRound === undefined)).toBe(true);
+    expect(up.clues.filter((c) => c.distribution === "search").every((c) => !c.unlock)).toBe(true);
+    expect(up.clues.find((c) => c.id === "ev-10")?.unlock).toBeDefined();
     expect(messages(up)).toEqual([]);
   });
 });

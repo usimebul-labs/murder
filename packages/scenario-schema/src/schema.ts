@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** 시나리오 JSON 형식의 버전. 형식이 바뀌면 올리고 migrate.ts에 변환을 추가한다. */
-export const SCHEMA_VERSION = 3 as const;
+export const SCHEMA_VERSION = 4 as const;
 
 const id = z
   .string()
@@ -94,8 +94,6 @@ export const LocationSchema = z.object({
     w: z.number().min(0).max(100),
     h: z.number().min(0).max(100),
   }),
-  /** 이 라운드의 조사부터 열린다 */
-  openFromRound: z.number().int().min(1).default(1),
 });
 
 /* ───────────── 캐릭터 (G-01 공개 프로필, G-02 비밀 문서, G-07 목표) ───────────── */
@@ -173,6 +171,7 @@ export const ClueVisibilitySchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("characters"), characterIds: z.array(id).min(1) }),
 ]);
 
+/** 공통 자료(public)·자동 배포(auto) 단서가 나타나는 조건. 탐색 단서는 처음부터 보드에 모두 나온다 */
 export const ClueUnlockSchema = z.object({
   /** 이 라운드부터 나타난다 */
   fromRound: z.number().int().min(1).default(1),
@@ -195,13 +194,16 @@ export const ClueSchema = z.object({
   /** Supabase Storage 객체 키 (비공개 버킷) */
   imageKey: z.string().optional(),
   /**
-   * search = 장소(locationId)를 조사해 줍는다
+   * search = 단서 보드에서 줍는다. 장소(locationId)나 관련 인물(characterIds)로 찾아볼 수 있다
    * public = 해금되는 순간 모두에게 공개된다 (공통 자료)
    * auto   = 해금되는 순간 visibility 대상 캐릭터에게 자동으로 주어진다
    */
   distribution: z.enum(["search", "public", "auto"]).default("search"),
   locationId: id.optional(),
+  /** 관련 인물. 단서 보드의 인물별 탐색에서 이 인물 아래에 나온다 (앞면에 공개된다) */
+  characterIds: z.array(id).max(8).default([]),
   visibility: ClueVisibilitySchema.default({ kind: "all" }),
+  /** public·auto 단서에만 쓴다. search 단서에 해금 조건을 두면 검증에서 막는다 */
   unlock: ClueUnlockSchema.default({ fromRound: 1 }),
   /** 결말 재구성·검수용 표시. 게임 규칙에는 영향 없음 */
   isKey: z.boolean().default(false),
@@ -240,7 +242,10 @@ export const PhaseSchema = z.discriminatedUnion("kind", [
     ...phaseBase,
     kind: z.literal("investigation"),
     round: z.number().int().min(1),
-    /** 한 사람이 이 라운드에 수집할 수 있는 단서 수 */
+    /**
+     * 한 사람이 이 탐색 단계에 수집할 수 있는 단서 수.
+     * 단서는 단계마다 따로 정하지 않고 모든 탐색 단서가 보드에 나오며, 단계마다 이 개수만큼 고른다.
+     */
     pointsPerPlayer: z.number().int().min(1).max(10),
     /** seat-rotating = 좌석 순서, 라운드마다 시작 순번이 한 칸씩 밀림 */
     turnOrder: z.enum(["seat-rotating", "seat", "random", "free"]).default("seat-rotating"),
