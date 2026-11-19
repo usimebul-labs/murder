@@ -23,10 +23,3 @@ export function takeHandedOffRoom(roomId: string): Pending | undefined {
   pending.delete(roomId);
   return entry;
 }
-
-/** 넘기지 않고 창을 닫으면 방에서 나간다 (아무도 없으면 서버가 방을 정리한다) */
-export function dropHeldRoom(roomId: string) {
-  const entry = pending.get(roomId);
-  pending.delete(roomId);
-  void entry?.room.leave();
-}

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** 시나리오 JSON 형식의 버전. 형식이 바뀌면 올리고 migrate.ts에 변환을 추가한다. */
-export const SCHEMA_VERSION = 2 as const;
+export const SCHEMA_VERSION = 3 as const;
 
 const id = z
   .string()
@@ -117,7 +117,16 @@ export const ObjectiveSchema = z.object({
   judge: ObjectiveJudgeSchema,
 });
 
+/** 인물 이야기 한 장. 프롤로그처럼 서술형으로 쓴 본문 (G-02 비밀 문서 00) */
+export const StoryChapterSchema = z.object({
+  id,
+  title: z.string().max(20),
+  body: richText,
+});
+
 export const CharacterScriptSchema = z.object({
+  /** 00 당신의 이야기: 서술형 본문. 아래 01~04는 이 이야기의 요약이다 */
+  story: z.array(StoryChapterSchema).max(10).default([]),
   /** 01 당신은 누구인가 */
   identity: richText,
   /** 02 당신이 아는 사람들 */
@@ -334,6 +343,7 @@ export type PrologueChapter = z.infer<typeof PrologueChapterSchema>;
 export type Location = z.infer<typeof LocationSchema>;
 export type ObjectiveJudge = z.infer<typeof ObjectiveJudgeSchema>;
 export type Objective = z.infer<typeof ObjectiveSchema>;
+export type StoryChapter = z.infer<typeof StoryChapterSchema>;
 export type CharacterScript = z.infer<typeof CharacterScriptSchema>;
 export type Character = z.infer<typeof CharacterSchema>;
 export type ClueVisibility = z.infer<typeof ClueVisibilitySchema>;
