@@ -81,6 +81,7 @@ describe("toPublicScenario", () => {
       "4,200",
       "Tinct",
       "solution",
+      '"story":',
     ]) {
       expect(json).not.toContain(secret);
     }
@@ -92,7 +93,20 @@ describe("migrateScenario", () => {
     expect(() => migrateScenario({ schemaVersion: 999 })).toThrow();
   });
 
-  it("v1 샘플을 v2로 올리면 검증을 통과한다", () => {
+  it("v1 샘플을 현재 버전으로 올리면 검증을 통과한다", () => {
     expect(messages(migrateScenario(v1Sample))).toEqual([]);
+  });
+
+  it("v2 시나리오를 올리면 인물 이야기가 빈 목록으로 채워진다", () => {
+    const v2 = structuredClone(sampleScenario) as unknown as {
+      schemaVersion: number;
+      characters: { script: { story?: unknown } }[];
+    };
+    v2.schemaVersion = 2;
+    for (const c of v2.characters) delete c.script.story;
+    const up = migrateScenario(v2) as typeof v2;
+    expect(up.schemaVersion).toBe(3);
+    expect(up.characters.every((c) => Array.isArray(c.script.story))).toBe(true);
+    expect(messages(up)).toEqual([]);
   });
 });

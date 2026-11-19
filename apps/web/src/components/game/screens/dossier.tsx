@@ -1,12 +1,13 @@
 "use client";
 
 import { cn } from "@mm/ui";
-import { BookOpenCheck, CircleCheck, Lock, Target } from "lucide-react";
-import { useState } from "react";
+import { BookOpenCheck, ChevronLeft, ChevronRight, CircleCheck, Lock, Target } from "lucide-react";
+import { useRef, useState } from "react";
 import { ActionBar, Avatar, btn, Countdown, Eyebrow, Notes, Portrait, TopBar } from "../primitives";
 import type { GameContext } from "../types";
 
 const SECTIONS = [
+  ["story", "00", "이야기"],
   ["identity", "01", "인물"],
   ["people", "02", "관계"],
   ["night", "03", "그날 밤"],
@@ -14,6 +15,14 @@ const SECTIONS = [
   ["goals", "05", "목표"],
 ] as const;
 type Section = (typeof SECTIONS)[number][0];
+
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+
+/** 이야기가 없는 (예전) 시나리오에서는 00 이야기 항목을 숨긴다 */
+function sectionsFor(script: GameContext["script"]) {
+  const hasStory = (script?.script.story.length ?? 0) > 0;
+  return SECTIONS.filter(([id]) => id !== "story" || hasStory);
+}
 
 /** 비밀 문서 본문. 읽기 페이즈 화면과 게임 중 '비밀 문서' 창에서 같이 쓴다 */
 export function DossierBody({ ctx, section }: { ctx: GameContext; section?: Section }) {
@@ -25,8 +34,29 @@ export function DossierBody({ ctx, section }: { ctx: GameContext; section?: Sect
   const pub = scenario?.characters.find((c) => c.id === script.characterId);
   const s = script.script;
   const show = (id: Section) => !section || section === id;
+  const hasStory = s.story.length > 0;
   return (
     <div className="space-y-10">
+      {show("story") && hasStory && (
+        <section id="dossier-story" className="space-y-5">
+          <div className="flex items-center gap-4">
+            <Avatar character={me} size={56} />
+            <div>
+              <Eyebrow>00 · YOUR STORY</Eyebrow>
+              <h2 className="mt-1 font-display text-3xl font-semibold md:text-4xl">
+                당신의 이야기
+              </h2>
+            </div>
+          </div>
+          <StoryChapters chapters={s.story} />
+        </section>
+      )}
+      {!section && hasStory && (
+        <div className="border-t-[3px] border-double border-border-strong pt-5">
+          <Eyebrow>SUMMARY · 요약</Eyebrow>
+          <p className="mt-1 text-sm text-muted-foreground">이야기의 핵심을 항목별로 정리했어요.</p>
+        </div>
+      )}
       {show("identity") && (
         <section id="dossier-identity" className="space-y-5">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
@@ -168,6 +198,90 @@ export function DossierBody({ ctx, section }: { ctx: GameContext; section?: Sect
   );
 }
 
+/** 프롤로그처럼 장을 넘겨 읽는 서술형 본문. 장이 길어도 높이는 고정하고 본문만 스크롤한다 */
+function StoryChapters({ chapters }: { chapters: { id: string; title: string; body: string }[] }) {
+  const [page, setPage] = useState(0);
+  const scroller = useRef<HTMLElement>(null);
+  const idx = Math.min(page, chapters.length - 1);
+  const ch = chapters[idx];
+  if (!ch) return null;
+  const go = (i: number) => {
+    setPage(i);
+    scroller.current?.scrollTo({ top: 0 });
+  };
+  return (
+    <div className="flex flex-col gap-4 rounded-[6px] border border-border bg-card p-5 shadow-[var(--shadow-paper)]">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <Eyebrow>
+          STORY {ROMAN[idx] ?? idx + 1} · {idx + 1} / {chapters.length}
+        </Eyebrow>
+      </div>
+      <h3 className="font-serif text-[clamp(20px,2.4vw,26px)] font-bold leading-[1.35] [text-wrap:balance]">
+        {ch.title}
+      </h3>
+      <section
+        key={ch.id}
+        ref={scroller}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: 키보드로 본문을 스크롤할 수 있어야 한다
+        tabIndex={0}
+        aria-label={`이야기 ${ch.title}`}
+        className={cn(
+          "-mx-2.5 overflow-y-auto overscroll-contain px-2.5 [scrollbar-color:var(--border-strong)_transparent] [scrollbar-width:thin]",
+          chapters.length > 1 ? "h-[clamp(240px,46vh,440px)]" : "max-h-[clamp(240px,46vh,440px)]",
+        )}
+      >
+        <Story text={ch.body} />
+      </section>
+      {chapters.length > 1 && (
+        <nav
+          aria-label="이야기 장"
+          className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t border-border pt-4"
+        >
+          <div className="flex">
+            <button
+              type="button"
+              className={cn(btn.base, btn.ghost, btn.sm)}
+              disabled={idx === 0}
+              onClick={() => go(idx - 1)}
+            >
+              <ChevronLeft size={14} aria-hidden /> 이전 장
+            </button>
+          </div>
+          <div className="flex items-center gap-1">
+            {chapters.map((c, i) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => go(i)}
+                aria-current={i === idx}
+                aria-label={`${i + 1}장 ${c.title}`}
+                className={cn(
+                  "h-9 min-w-9 rounded-[4px] px-2 font-mono text-xs",
+                  i === idx
+                    ? "bg-accent font-bold text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {ROMAN[i] ?? i + 1}
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className={cn(btn.base, btn.ghost, btn.sm)}
+              disabled={idx >= chapters.length - 1}
+              onClick={() => go(idx + 1)}
+            >
+              다음 장 <ChevronRight size={14} aria-hidden />
+            </button>
+          </div>
+        </nav>
+      )}
+    </div>
+  );
+}
+
 function Story({ text }: { text: string }) {
   return (
     <div className="space-y-4 font-serif text-[17px] leading-[1.9] text-[var(--paper-100)]">
@@ -181,16 +295,19 @@ function Story({ text }: { text: string }) {
 /** 비밀 문서 숙지 페이즈 */
 export function Reading({ ctx }: { ctx: GameContext }) {
   const { state, me, phase, script } = ctx;
-  const [section, setSection] = useState<Section>("identity");
-  const [seen, setSeen] = useState<Set<Section>>(() => new Set(["identity"]));
+  const sections = sectionsFor(script);
+  const [picked, setPicked] = useState<Section | null>(null);
+  const section = picked ?? sections[0]?.[0] ?? "identity";
+  const [visited, setVisited] = useState<Set<Section>>(() => new Set());
+  const seen = new Set([...visited, section]);
   const players = Object.values(state.players).filter((p) => p.characterId);
   const done = players.filter((p) => p.done).length;
   const myInfo = ctx.character(ctx.myCharacterId);
   const go = (id: Section) => {
-    setSection(id);
-    setSeen((prev) => new Set(prev).add(id));
+    setPicked(id);
+    setVisited((prev) => new Set(prev).add(section).add(id));
   };
-  const unread = SECTIONS.filter(([id]) => !seen.has(id)).map(([, , label]) => label);
+  const unread = sections.filter(([id]) => !seen.has(id)).map(([, , label]) => label);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -220,8 +337,18 @@ export function Reading({ ctx }: { ctx: GameContext }) {
             </div>
           </div>
           <ul className="flex gap-1 overflow-x-auto lg:flex-col">
-            {SECTIONS.map(([id, no, label]) => (
+            {sections.map(([id, no, label]) => (
               <li key={id} className="flex-none">
+                {sections[0]?.[0] === "story" && (id === "story" || id === "identity") && (
+                  <p
+                    className={cn(
+                      "mb-1 hidden px-3 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground lg:block",
+                      id === "identity" && "mt-3",
+                    )}
+                  >
+                    {id === "story" ? "이야기" : "요약"}
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={() => go(id)}
@@ -296,7 +423,7 @@ export function Reading({ ctx }: { ctx: GameContext }) {
         </aside>
       </div>
       <ActionBar
-        eyebrow={`READING · ${seen.size}/${SECTIONS.length}`}
+        eyebrow={`READING · ${seen.size}/${sections.length}`}
         title={myInfo ? `당신은 ${myInfo.name}입니다` : "비밀 문서"}
         desc={
           unread.length > 0 ? `아직 읽지 않은 항목 — ${unread.join(", ")}` : "모든 항목을 읽었어요"
