@@ -38,31 +38,26 @@ describe("validateScenario", () => {
     expect(messages(s).some((m) => m.includes("ghost"))).toBe(true);
   });
 
-  it("없는 장소, 없는 관련 인물을 찾는다", () => {
+  it("없는 장소, 없는 인물을 찾는다", () => {
     const s = clone();
     const clues = s.clues as unknown as Clue[];
     clues[1].locationId = "attic";
-    clues[2].characterIds = ["ghost"];
+    const person = clues.find((c) => c.characterId);
+    if (person) person.characterId = "ghost";
     const m = messages(s);
     expect(m.some((x) => x.includes("attic"))).toBe(true);
     expect(m.some((x) => x.includes("ghost"))).toBe(true);
   });
 
-  it("장소도 관련 인물도 없는 탐색 단서는 실패한다", () => {
-    const s = clone();
-    const clue = (s.clues as unknown as Clue[]).find((c) => c.id === "ev-04");
-    if (clue) {
-      clue.locationId = undefined;
-      clue.characterIds = [];
-    }
-    expect(messages(s).some((m) => m.includes("장소도 관련 인물도"))).toBe(true);
-  });
-
-  it("관련 인물만 있는 탐색 단서는 통과한다", () => {
-    const s = clone();
-    const clue = (s.clues as unknown as Clue[]).find((c) => c.id === "ev-04");
-    if (clue) clue.locationId = undefined;
-    expect(messages(s)).toEqual([]);
+  it("탐색 단서는 장소 단서와 인물 단서 중 하나여야 한다", () => {
+    const none = clone();
+    const a = (none.clues as unknown as Clue[]).find((c) => c.id === "ev-04");
+    if (a) a.locationId = undefined;
+    expect(messages(none).some((m) => m.includes("장소도 인물도"))).toBe(true);
+    const both = clone();
+    const b = (both.clues as unknown as Clue[]).find((c) => c.id === "ev-04");
+    if (b) b.characterId = "henry";
+    expect(messages(both).some((m) => m.includes("하나여야"))).toBe(true);
   });
 
   it("탐색 단서에 해금 조건을 두면 실패한다", () => {
@@ -140,19 +135,36 @@ describe("migrateScenario", () => {
     const v3 = structuredClone(sampleScenario) as unknown as {
       schemaVersion: number;
       locations: { openFromRound?: number }[];
-      clues: { id: string; distribution: string; characterIds?: string[]; unlock?: unknown }[];
+      clues: { id: string; distribution: string; characterId?: string; unlock?: unknown }[];
     };
     v3.schemaVersion = 3;
     for (const l of v3.locations) l.openFromRound = 2;
     for (const c of v3.clues) {
-      delete c.characterIds;
       if (c.distribution === "search") c.unlock = { fromRound: 3 };
     }
     const up = migrateScenario(v3) as typeof v3;
-    expect(up.schemaVersion).toBe(4);
+    expect(up.schemaVersion).toBe(SCHEMA_VERSION);
     expect(up.locations.every((l) => l.openFromRound === undefined)).toBe(true);
     expect(up.clues.filter((c) => c.distribution === "search").every((c) => !c.unlock)).toBe(true);
     expect(up.clues.find((c) => c.id === "ev-10")?.unlock).toBeDefined();
     expect(messages(up)).toEqual([]);
+  });
+
+  it("v4 관련 인물 목록은 장소가 없을 때만 인물 단서로 바뀐다", () => {
+    const v4 = {
+      ...structuredClone(sampleScenario),
+      schemaVersion: 4,
+      clues: [
+        { id: "a", distribution: "search", locationId: "study", characterIds: ["henry"] },
+        { id: "b", distribution: "search", characterIds: ["victor", "clara"] },
+        { id: "c", distribution: "public", characterIds: [] },
+      ],
+    };
+    const up = migrateScenario(v4) as { clues: Record<string, unknown>[] };
+    expect(up.clues).toEqual([
+      { id: "a", distribution: "search", locationId: "study" },
+      { id: "b", distribution: "search", characterId: "victor" },
+      { id: "c", distribution: "public" },
+    ]);
   });
 });

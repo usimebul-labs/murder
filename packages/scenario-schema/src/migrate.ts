@@ -5,6 +5,7 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
   1: migrateV1toV2,
   2: migrateV2toV3,
   3: migrateV3toV4,
+  4: migrateV4toV5,
 };
 
 type Raw = Record<string, unknown>;
@@ -151,6 +152,25 @@ function migrateV3toV4(raw: Raw): Raw {
       }
       const { unlock: _unlock, ...rest } = c;
       return { ...rest, characterIds };
+    }),
+  };
+}
+
+/**
+ * v4 → v5
+ * - 탐색 단서를 장소 단서와 인물 단서로 나눈다: 관련 인물 목록(characterIds) 대신 인물 하나(characterId).
+ *   장소가 있는 단서는 장소 단서로 남고, 장소 없이 관련 인물만 있던 단서는 첫 인물의 인물 단서가 된다.
+ */
+function migrateV4toV5(raw: Raw): Raw {
+  return {
+    ...raw,
+    schemaVersion: 5,
+    clues: arr(raw.clues).map(({ characterIds, ...c }) => {
+      const first = Array.isArray(characterIds) ? characterIds[0] : undefined;
+      const search = c.distribution === "search" || c.distribution === undefined;
+      return search && !c.locationId && typeof first === "string"
+        ? { ...c, characterId: first }
+        : c;
     }),
   };
 }

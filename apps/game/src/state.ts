@@ -47,6 +47,8 @@ export const Player = schema(
     hasVoted: t.boolean().default(false),
     /** 이번 탐색 라운드에 남은 수집 횟수 */
     picksLeft: t.uint8().default(0),
+    /** 이번 탐색 라운드에 이미 단서를 가져간 대상 ("place:장소 id" / "person:인물 id"). 같은 대상은 다시 고를 수 없다 */
+    pickedTargets: t.array("string"),
   },
   "Player",
 );
@@ -63,8 +65,8 @@ export const ClueCard = schema(
     category: t.string().default(""),
     source: t.string().default(""),
     locationId: t.string().default(""),
-    /** 관련 인물 id. 단서 보드의 인물별 탐색에 쓴다 */
-    characterIds: t.array("string"),
+    /** 인물 단서의 대상 인물 id. 장소 단서면 비어 있다 */
+    characterId: t.string().default(""),
     /** search = 단서 보드에서 줍는 단서, public = 공통 자료, auto = 자동 배포 */
     distribution: t.string().default("search"),
     /** 탐색 단서는 수집된 라운드(아직 보드 위면 0), 그 밖의 단서는 나온 라운드 */

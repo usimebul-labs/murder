@@ -80,6 +80,8 @@ export interface PlayerInfo {
   isBot: boolean;
   hasVoted: boolean;
   picksLeft: number;
+  /** 이번 탐색 단계에 단서를 가져간 대상 ("place:장소 id" / "person:인물 id") */
+  pickedTargets: string[];
 }
 
 export interface ClueCardInfo {
@@ -88,8 +90,8 @@ export interface ClueCardInfo {
   category: ClueCategory;
   source: string;
   locationId: string;
-  /** 관련 인물 id (인물별 탐색) */
-  characterIds: string[];
+  /** 인물 단서의 대상 인물 id. 장소 단서면 빈 문자열 */
+  characterId: string;
   /** search = 단서 보드에서 줍는 단서, public = 공통 자료, auto = 자동 배포 */
   distribution: "search" | "public" | "auto";
   /** 탐색 단서는 수집된 라운드(보드 위면 0), 그 밖의 단서는 나온 라운드 */
