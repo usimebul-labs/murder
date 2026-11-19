@@ -1,8 +1,13 @@
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--background);color:var(--foreground);font:var(--type-body);word-break:keep-all;overflow-wrap:break-word;-webkit-font-smoothing:antialiased}
+/* 링크 기본값은 base 레이어에 둔다. 레이어 밖에 두면 `a:hover`(0,1,1)가 `.nm-btn--primary`(0,1,0)나
+   Tailwind 유틸리티(`text-primary-foreground` 등)보다 우선해, 링크로 렌더링한 버튼의 글자색이
+   호버 시 배경색과 같아진다. Tailwind 없이 쓰여도 레이어 밖 컴포넌트 클래스가 항상 이긴다. */
+@layer base{
 a{color:var(--primary);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
 a:hover{color:var(--primary-hover)}
+}
 ::selection{background:oklch(0.80 0.11 80 / 0.35)}
 :focus-visible{outline:2px solid var(--ring);outline-offset:2px}
 .nm-scene{background:var(--vignette),var(--background);color:var(--foreground)}

@@ -535,12 +535,12 @@ export function ActionBar({
 }
 
 export const btn = {
-  base: "inline-flex h-11 items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:translate-y-px",
+  base: "inline-flex h-11 no-underline items-center justify-center gap-2 rounded-md px-5 text-sm font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:translate-y-px",
   primary: "bg-primary text-primary-foreground hover:bg-primary-hover",
   secondary:
     "border border-border bg-secondary text-secondary-foreground hover:border-border-strong hover:bg-accent",
-  outline: "border border-border-strong bg-transparent hover:bg-accent",
-  ghost: "bg-transparent hover:bg-accent",
+  outline: "border border-border-strong bg-transparent text-foreground hover:bg-accent",
+  ghost: "bg-transparent text-foreground hover:bg-accent",
   accuse:
     "border border-[var(--oxblood-400)] bg-[var(--accused-solid)] font-display uppercase tracking-[0.14em] text-[var(--paper-50)] hover:bg-[var(--oxblood-500)] hover:shadow-[var(--glow-accused)]",
   sm: "h-9 px-3 text-xs",
